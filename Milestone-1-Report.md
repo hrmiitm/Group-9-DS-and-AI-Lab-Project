@@ -2,6 +2,12 @@
 
 **Milestone 1**
 
+<div align="center">
+  <img src="./Workflow.png" alt="Proposed System Workflow Architecture" width="800">
+  <br>
+  <em>Figure 1: High-level architecture of the proposed agentic AI fake job detection system.</em>
+</div>
+
 ---
 
 ## 1. Problem Statement
@@ -115,6 +121,14 @@ The following objectives are measurable and directly aligned with solving the pr
 3. **Create an explainability layer** using a Generative AI component that produces a structured, human-readable fraud report for every analyzed listing — covering deceptive language, suspicious metadata, and verification mismatches.
 
 4. **Deliver a working prototype** that can accept a job listing as input and output: (a) a fraud probability score, (b) a verdict (Fraudulent / Legitimate), and (c) a plain-language explanation.
+
+### Proposed System Workflow
+
+<div align="center">
+  <img src="./Workflow.png" alt="Proposed System Workflow Architecture" width="100%">
+  <br>
+  <em>Figure 1: High-level architecture of the proposed agentic AI fake job detection system.</em>
+</div>
 
 ---
 
