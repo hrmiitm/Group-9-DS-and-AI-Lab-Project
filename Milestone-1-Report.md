@@ -122,14 +122,6 @@ The following objectives are measurable and directly aligned with solving the pr
 
 4. **Deliver a working prototype** that can accept a job listing as input and output: (a) a fraud probability score, (b) a verdict (Fraudulent / Legitimate), and (c) a plain-language explanation.
 
-### Proposed System Workflow
-
-<div align="center">
-  <img src="./Workflow.png" alt="Proposed System Workflow Architecture" width="100%">
-  <br>
-  <em>Figure 1: High-level architecture of the proposed agentic AI fake job detection system.</em>
-</div>
-
 ---
 
 ## 5. Literature Review and Existing Solutions
