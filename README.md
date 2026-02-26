@@ -1,6 +1,6 @@
 # Fake Job Listing Detection using Deep Learning and Agentic Generative AI
 
-**Milestone 1**
+
 
 <div align="center">
   <img src="./Workflow.png" alt="Proposed System Workflow Architecture" width="800">
