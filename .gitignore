@@ -1,0 +1,18 @@
+# Model weights — too large for GitHub (use HuggingFace Hub instead)
+models/*/model.safetensors
+models/*/optimizer.pt
+models/*/scheduler.pt
+models/*/scaler.pt
+models/*/rng_state.pth
+
+# Test probabilities
+*.npy
+
+# Checkpoints
+checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
