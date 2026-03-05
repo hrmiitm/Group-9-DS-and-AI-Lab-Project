@@ -12,6 +12,9 @@ This document tracks the work completed and responsibilities assigned for Milest
 
 - **Project Outlining & Markdown Creation:** Created and structured the project markdown files, including the `Milestone-2-Report.md` and `Team-Contribution-Tracker.md`.
 - **Task Management:** Defined and allocated the required project work across the team, setting a clear roadmap for Milestone 2.
+- **Dataset  Quality Assessment:** Handled the missing value and duplicate value in the dataset.
+- **Training, Validation and Test Split Strategy:** Implemented a deterministic stratified split preserving the fraud rate across Train,Validation, and Test sets.
+- **Preprocessing & Data Preparation:** Designed and implemented a fully parameterised and reproducible preprocessing pipeline that loads raw CSV data, removes null labels and duplicates, performs stratified splitting, applies tokenization.
 
 ---
 
