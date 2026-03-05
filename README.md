@@ -2,7 +2,7 @@
 <div align="center">
   <img src="static/Milestone2Summary.png" alt="Proposed System Workflow Architecture" width="800">
   <br>
-  <em>Figure 1: High-level architecture of the proposed agentic AI fake job detection system.</em>
+  <em>Milestone 2 Summary</em>
 </div>
 
 
