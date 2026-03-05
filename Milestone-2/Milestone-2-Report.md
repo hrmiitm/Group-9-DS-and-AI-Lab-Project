@@ -1,8 +1,6 @@
-DSAI Lab Project
+# Milestone 2: Dataset Identification & Preparation
 
-**Milestone 2: Dataset Identification & Preparation**
-
-**Transformer-Based Fake Job Posting Detection**
+## Transformer-Based Fake Job Posting Detection
 
 Section 4.1 - AI-Powered Fraud Classification System
 
