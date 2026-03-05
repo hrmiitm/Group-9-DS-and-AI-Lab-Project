@@ -61,6 +61,21 @@ python eval.py \
   --infer
 ```
 
+### Job Parser Agent
+
+Extract all 18 structured features defined in the Milestone-2 dataset schema from a job posting document (supported formats: `.pdf`, `.docx`, `.doc`, `.html`, `.htm`, `.md`, `.txt`).
+
+> **Note:** Set your OpenAI API key before running:
+> ```bash
+> export OPENAI_API_KEY="sk-..."
+> ```
+
+```bash
+python AgenticWork/job_parser_agent.py path/to/job_description.pdf
+python AgenticWork/job_parser_agent.py path/to/job_description.docx
+python AgenticWork/job_parser_agent.py path/to/job_description.md
+```
+
 ## Project Structure
 ```
 Group-9-DS-and-AI-Lab-Project/
