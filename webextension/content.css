@@ -1,0 +1,106 @@
+/* ============================================================
+   LinkedIn Job Predictor — Content Script Styles
+   ============================================================ */
+
+/* ── Floating "Analyze Job" Button ────────────────────────── */
+#ljp-analyze-btn {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 999999;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 22px;
+    border: none;
+    border-radius: 50px;
+
+    /* Glassmorphism effect */
+    background: linear-gradient(135deg, rgba(10, 102, 194, 0.92), rgba(30, 58, 138, 0.95));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+        0 8px 32px rgba(10, 102, 194, 0.35),
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
+}
+
+#ljp-analyze-btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow:
+        0 12px 40px rgba(10, 102, 194, 0.45),
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+#ljp-analyze-btn:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+#ljp-analyze-btn.ljp-loading {
+    pointer-events: none;
+    opacity: 0.85;
+    background: linear-gradient(135deg, rgba(80, 80, 80, 0.9), rgba(50, 50, 50, 0.95));
+}
+
+.ljp-btn-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.ljp-btn-text {
+    line-height: 1;
+}
+
+/* Spinner */
+.ljp-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: ljp-spin 0.7s linear infinite;
+}
+
+@keyframes ljp-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse animation on button idle */
+#ljp-analyze-btn::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50px;
+    background: linear-gradient(135deg, rgba(10, 102, 194, 0.4), rgba(30, 58, 138, 0.2));
+    z-index: -1;
+    animation: ljp-pulse 2.5s ease-in-out infinite;
+    opacity: 0;
+}
+
+@keyframes ljp-pulse {
+
+    0%,
+    100% {
+        opacity: 0;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+}
