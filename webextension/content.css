@@ -104,3 +104,245 @@
         transform: scale(1.08);
     }
 }
+
+
+/* ── Overlay & Results Panel ──────────────────────────────── */
+#ljp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999999;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#ljp-overlay.ljp-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.ljp-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+}
+
+.ljp-results-panel {
+    position: relative;
+    width: 420px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin-right: 24px;
+    padding: 0;
+    border-radius: 16px;
+    background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif;
+    font-size: 14px;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#ljp-overlay.ljp-visible .ljp-results-panel {
+    transform: translateX(0);
+}
+
+.ljp-results-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ljp-results-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ljp-results-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.ljp-results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ljp-results-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.ljp-logo {
+    font-size: 22px;
+}
+
+.ljp-close-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #aaa;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ljp-close-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.ljp-job-info {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ljp-job-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.ljp-company-name {
+    font-size: 13px;
+    color: #8899aa;
+}
+
+.ljp-verdict-card {
+    margin: 16px 24px;
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.ljp-verdict-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ljp-verdict-emoji {
+    font-size: 32px;
+    line-height: 1;
+}
+
+.ljp-verdict-label {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.ljp-confidence {
+    font-size: 12px;
+    color: #8899aa;
+    margin-top: 2px;
+}
+
+.ljp-confidence-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.ljp-confidence-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ljp-section {
+    padding: 12px 24px;
+}
+
+.ljp-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #7a8fa6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.ljp-summary {
+    line-height: 1.6;
+    color: #c8d6e5;
+    margin: 0;
+}
+
+.ljp-reasons {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ljp-reasons li {
+    position: relative;
+    padding-left: 18px;
+    line-height: 1.5;
+    color: #c8d6e5;
+}
+
+.ljp-reasons li::before {
+    content: "›";
+    position: absolute;
+    left: 0;
+    color: #5b9bd5;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.ljp-tip {
+    margin: 4px 24px 8px;
+    padding: 12px 16px;
+    background: rgba(100, 200, 255, 0.06);
+    border-radius: 10px;
+    border: 1px solid rgba(100, 200, 255, 0.1);
+}
+
+.ljp-tip p {
+    margin: 0;
+    color: #a0d2f0;
+    line-height: 1.5;
+}
+
+.ljp-footer {
+    padding: 14px 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #556677;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ljp-error-panel .ljp-error-message {
+    padding: 24px;
+}
+
+.ljp-error-panel .ljp-error-message p {
+    margin: 0;
+    color: #ff7b7b;
+    line-height: 1.6;
+    background: rgba(255, 23, 68, 0.08);
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 23, 68, 0.15);
+}
