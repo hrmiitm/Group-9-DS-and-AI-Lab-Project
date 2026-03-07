@@ -96,14 +96,29 @@ Group-9-DS-and-AI-Lab-Project/
 │       ├── data.py
 │       ├── focal_loss.py
 │       └── metrics.py
+├── webextension/          ← Chrome Extension (LinkedIn Job Predictor)
+│   ├── manifest.json
+│   ├── background.js
+│   ├── content.js
+│   ├── content.css
+│   ├── popup.html/css/js
+│   ├── icons/
+│   ├── README.md
+│   ├── SETUP.md
+│   └── ARCHITECTURE.md
 ├── notebook/
 │   └── transformer_fraud_classifier_v3_1.ipynb
 ├── requirements.txt
 ├── README.md
 └── .gitignore
-
-
 ```
+
+## 🛡️ Chrome Extension — LinkedIn Job Predictor
+
+We've also built a **Chrome extension** that brings the fraud detection directly to LinkedIn! When browsing job listings, click the "Analyze Job" button to get an instant AI-powered prediction of whether the job is legitimate or potentially fake.
+
+👉 **See [webextension/README.md](webextension/README.md) for full documentation and setup.**
+👉 **Quick start: [webextension/SETUP.md](webextension/SETUP.md)**
 
 ## Model Architecture
 
