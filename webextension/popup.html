@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn Job Predictor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <span class="popup-logo">🛡️</span>
+      <div>
+        <h1 class="popup-title">Job Predictor</h1>
+        <p class="popup-subtitle">LinkedIn AI Analyzer</p>
+      </div>
+    </div>
+
+    <div class="popup-status" id="status-bar">
+      <span class="status-dot" id="status-dot"></span>
+      <span class="status-text" id="status-text">Checking...</span>
+    </div>
+
+    <div class="popup-section">
+      <label for="api-key" class="popup-label">Gemini API Key</label>
+      <div class="input-group">
+        <input
+          type="password"
+          id="api-key"
+          class="popup-input"
+          placeholder="Enter your Gemini API key"
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <button class="toggle-visibility" id="toggle-key" title="Show/Hide Key">👁️</button>
+      </div>
+      <button class="popup-btn" id="save-btn">
+        <span class="btn-text">Save Key</span>
+      </button>
+    </div>
+
+    <div class="popup-info">
+      <p>📌 Navigate to a LinkedIn job listing, then click the <strong>"🔍 Analyze Job"</strong> button on the page.</p>
+    </div>
+
+    <div class="popup-footer">
+      <span>v1.0.0</span>
+      <span>·</span>
+      <span>Powered by Gemini</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
