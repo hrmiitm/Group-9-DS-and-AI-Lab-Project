@@ -322,13 +322,10 @@ Industries: ${jobData.industries || "Not found"}`;
         const url = `${GEMINI_CONFIG.baseUrl}/${GEMINI_CONFIG.model}:generateContent?key=${apiKey}`;
 
         const body = {
-            system_instruction: {
-                parts: [{ text: prompt.systemInstruction }],
-            },
             contents: [
                 {
                     role: "user",
-                    parts: [{ text: prompt.userMessage }],
+                    parts: [{ text: prompt.systemInstruction + "\n\n" + prompt.userMessage }],
                 },
             ],
             generationConfig: {
