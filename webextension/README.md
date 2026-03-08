@@ -1,24 +1,31 @@
-# 🛡️ LinkedIn Job Predictor — Chrome Extension
+# 🛡️ LinkedIn Job Predictor — Chrome Extension (v2.0)
 
-> A Chrome extension that analyzes LinkedIn job listings using Google Gemini AI to predict whether a job is **legit**, **suspicious**, or **potentially fake** — so you don't waste time applying to scam postings.
+> A Chrome extension that analyzes LinkedIn job listings using a **LangChain-inspired multi-step pipeline** and Google Gemini AI to predict whether a job is **legit**, **suspicious**, or **potentially fake** — including scraping external links in job descriptions for deeper analysis.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-Webetention/
-├── manifest.json      ← The brain — tells Chrome what this extension is
-├── background.js      ← Talks to Gemini API (runs behind the scenes)
-├── content.js         ← Injected INTO LinkedIn pages (button + scraper + overlay)
-├── content.css        ← Styles for everything injected on LinkedIn
-├── popup.html         ← The small window when you click the extension icon
-├── popup.css          ← Styles for the popup
-├── popup.js           ← Saves/loads your API key
-└── icons/
-    ├── icon16.png     ← Tiny icon (tabs, favicon)
-    ├── icon48.png     ← Medium icon (extensions page)
-    └── icon128.png    ← Large icon (Chrome Web Store)
+webextension/
+├── manifest.json          ← Extension config (MV3, ES modules)
+├── background.js          ← Pipeline orchestrator (imports all tools)
+├── content.js             ← DOM scraping + link extraction + overlay UI
+├── content.css            ← Styles for button, overlay, progress bar
+├── popup.html/css/js      ← API key settings UI
+├── lib/                   ← LangChain-inspired framework
+│   ├── langchain-core.js  ← BaseTool, ToolResult, Chain, ToolRegistry
+│   └── pipeline.js        ← PipelineConfig, PipelineBuilder, Aggregator
+├── tools/                 ← Pipeline tools
+│   ├── link-detector.js   ← DetectLinksTool (URL discovery + categorization)
+│   ├── text-extractor.js  ← TextExtractor (HTML → clean text)
+│   ├── link-scraper.js    ← LinkScraperTool (fetch + extract external URLs)
+│   └── job-analyzer-tool.js ← JobAnalyzerTool (Gemini AI with risk scores)
+├── icons/
+├── README.md
+├── SETUP.md
+├── ARCHITECTURE.md
+└── CHAIN_DOCS.md          ← Detailed pipeline documentation
 ```
 
 ---
