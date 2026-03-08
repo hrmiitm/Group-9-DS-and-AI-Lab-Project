@@ -28,20 +28,26 @@
     function scrapeJobData() {
         const data = {};
 
-        // Job Title
+        // Job Title — try multiple selectors (LinkedIn A/B tests class names)
         data.title =
             getTextContent(".job-details-jobs-unified-top-card__job-title h1") ||
+            getTextContent(".job-details-jobs-unified-top-card__job-title") ||
             getTextContent(".jobs-unified-top-card__job-title") ||
             getTextContent(".t-24.t-bold.inline") ||
+            getTextContent(".top-card-layout__title") ||
             getTextContent("h1.topcard__title") ||
+            getTextContent("h2.t-24.t-bold") ||
             getTextContent("h1") ||
             "";
 
         // Company Name
         data.company =
+            getTextContent(".job-details-jobs-unified-top-card__company-name a") ||
             getTextContent(".job-details-jobs-unified-top-card__company-name") ||
+            getTextContent(".jobs-unified-top-card__company-name a") ||
             getTextContent(".jobs-unified-top-card__company-name") ||
             getTextContent(".topcard__org-name-link") ||
+            getTextContent(".top-card-layout__flavor--black-link") ||
             getTextContent("a.topcard__org-name-link") ||
             "";
 
@@ -50,6 +56,7 @@
             getTextContent(".job-details-jobs-unified-top-card__bullet") ||
             getTextContent(".jobs-unified-top-card__bullet") ||
             getTextContent(".topcard__flavor--bullet") ||
+            getTextContent(".top-card-layout__second-subline span") ||
             "";
 
         // Workplace Type (Remote, Hybrid, On-site)
@@ -72,13 +79,18 @@
             getTextContent(".num-applicants__caption") ||
             "";
 
-        // Job Description
+        // Job Description — critical field, try many selectors
         data.description =
             getTextContent(".jobs-description-content__text") ||
             getTextContent(".jobs-description__content") ||
-            getTextContent(".job-details-jobs-unified-top-card__job-description") ||
+            getTextContent(".jobs-box__html-content") ||
             getTextContent("#job-details") ||
+            getTextContent(".job-details-jobs-unified-top-card__job-description") ||
             getTextContent(".description__text") ||
+            getTextContent(".show-more-less-html__markup") ||
+            getTextContent("article.jobs-description") ||
+            // Fallback: try to find any "About the job" section
+            getDescriptionFromAboutSection() ||
             "";
 
         // Salary
@@ -90,23 +102,28 @@
 
         // Job criteria items (Seniority, Employment Type, etc.)
         const criteriaItems = document.querySelectorAll(
-            ".job-details-jobs-unified-top-card__job-insight, .jobs-unified-top-card__job-insight, .description__job-criteria-item"
+            ".job-details-jobs-unified-top-card__job-insight, .jobs-unified-top-card__job-insight, .description__job-criteria-item, .jobs-box__list-item"
         );
         criteriaItems.forEach((item) => {
+            const text = item.textContent.trim();
             const label = (
                 item.querySelector(
-                    ".job-details-jobs-unified-top-card__job-insight-view-model-secondary, h3"
+                    ".job-details-jobs-unified-top-card__job-insight-view-model-secondary, h3, .t-black--light"
                 )?.textContent || ""
             ).trim().toLowerCase();
             const value = (
-                item.querySelector("span:last-child, .description__job-criteria-text")
+                item.querySelector("span:last-child, .description__job-criteria-text, .t-black.t-normal")
                     ?.textContent || ""
             ).trim();
 
-            if (label.includes("seniority")) data.seniorityLevel = value;
-            if (label.includes("employment")) data.employmentType = value;
-            if (label.includes("function")) data.jobFunction = value;
-            if (label.includes("industr")) data.industries = value;
+            if (label.includes("seniority") || text.toLowerCase().includes("seniority"))
+                data.seniorityLevel = value || text;
+            if (label.includes("employment") || text.toLowerCase().includes("full-time") || text.toLowerCase().includes("part-time"))
+                data.employmentType = value || text;
+            if (label.includes("function") || text.toLowerCase().includes("function"))
+                data.jobFunction = value || text;
+            if (label.includes("industr") || text.toLowerCase().includes("industr"))
+                data.industries = value || text;
         });
 
         // Company About / Description
@@ -122,12 +139,68 @@
             }
         });
 
+        console.log("[Content] Scraped data fields:", Object.keys(data).filter(k => data[k]).length, "non-empty");
+        console.log("[Content] Title:", data.title?.substring(0, 60));
+        console.log("[Content] Description length:", data.description?.length);
+
         return data;
     }
 
+    /**
+     * Fallback: try to find job description from "About the job" section
+     * by walking the DOM for known heading patterns.
+     */
+    function getDescriptionFromAboutSection() {
+        // Look for "About the job" heading and get its next sibling content
+        const headings = document.querySelectorAll("h2, h3, .t-20.t-bold, .t-16.t-bold");
+        for (const heading of headings) {
+            const text = heading.textContent.trim().toLowerCase();
+            if (text.includes("about the job") || text.includes("about this role")) {
+                // Get the next sibling element's text
+                let sibling = heading.nextElementSibling;
+                while (sibling) {
+                    const content = sibling.textContent.trim();
+                    if (content.length > 50) {
+                        return content;
+                    }
+                    sibling = sibling.nextElementSibling;
+                }
+                // Try parent's children
+                const parent = heading.closest("section, div, article");
+                if (parent) {
+                    const fullText = parent.textContent.trim();
+                    if (fullText.length > 100) return fullText;
+                }
+            }
+        }
+        return null;
+    }
+
     function getTextContent(selector) {
-        const el = document.querySelector(selector);
-        return el ? el.textContent.trim() : null;
+        try {
+            const el = document.querySelector(selector);
+            if (!el) return null;
+            const text = el.textContent.trim();
+            return text.length > 0 ? text : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Wait for job content to load in the DOM (LinkedIn loads async).
+     * Retries up to maxAttempts with a delay between each attempt.
+     */
+    async function waitForJobContent(maxAttempts = 3, delayMs = 1000) {
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const data = scrapeJobData();
+            if (data.title || data.description) {
+                return data;
+            }
+            console.log(`[Content] Waiting for job content (attempt ${attempt + 1}/${maxAttempts})...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+        return scrapeJobData(); // Final attempt
     }
 
     // ── Extract Links from Job Description DOM ────────────────
@@ -268,8 +341,8 @@
         btn.disabled = true;
 
         try {
-            // Scrape job data from LinkedIn DOM
-            const jobData = scrapeJobData();
+            // Wait for job content to load (LinkedIn loads async)
+            const jobData = await waitForJobContent(3, 1000);
 
             // Extract links from the job description DOM
             const domLinks = extractLinksFromDOM();
@@ -277,7 +350,7 @@
             // Validate we have something to analyze
             if (!jobData.title && !jobData.description) {
                 throw new Error(
-                    "No job data found on this page. Make sure you're viewing a job listing."
+                    "No job data found on this page. Make sure you're viewing a specific job listing (click on a job from the list)."
                 );
             }
 
