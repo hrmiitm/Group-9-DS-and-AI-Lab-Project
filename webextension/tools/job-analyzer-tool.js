@@ -12,7 +12,7 @@ import { BaseTool, ToolResult } from "../lib/langchain-core.js";
  */
 const GEMINI_CONFIG = {
     model: "gemini-1.5-flash",
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta/models",
+    baseUrl: "https://generativelanguage.googleapis.com/v1/models",
     temperature: 0.3,
     topP: 0.8,
     maxOutputTokens: 2048,
