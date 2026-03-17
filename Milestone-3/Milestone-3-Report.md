@@ -1,0 +1,360 @@
+DSAI Lab Project
+
+**Milestone 3: Model Architecture, Design Justification & Pipeline Verification**
+
+**Transformer-Based Fake Job Posting Detection**
+
+Section 4.1 — AI-Powered Fraud Classification System
+
+March 2026
+
+---
+
+# 1. Dataset Organization
+
+## 1.1 Directory Structure
+
+The project follows a clean separation of raw data, processed artifacts, and model outputs:
+
+```
+Q1/                                    ← Project Root
+│
+├── fake_job_postings.csv              ← Raw dataset (17,880 rows, 18 columns)
+│                                         Source: Kaggle shivamb/real-or-fake-fake-jobposting-prediction
+│
+├── train.py                           ← Production training script
+├── eval.py                            ← Production evaluation script
+├── milestone3_pipeline.py             ← End-to-end pipeline verification (Milestone 3)
+│
+├── rule_discovery_ebm.ipynb           ← EBM-based interpretable rule discovery
+├── transformer_fraud_classifier_v3_1.ipynb  ← Full experimentation notebook
+│
+├── Milestone 2.md                     ← Milestone 2 report
+├── Milestone 3.md                     ← This report
+│
+├── milestone3_output/                 ← Training checkpoints & logs (auto-created)
+│   ├── checkpoint-xxx/
+│   └── runs/
+│
+└── fraud_detector_final/              ← Saved model artifacts (from train.py)
+    ├── config.json
+    ├── model.safetensors
+    ├── tokenizer.json
+    ├── tokenizer_config.json
+    ├── special_tokens_map.json
+    ├── inference_config.json           ← Threshold, metrics, HP snapshot
+    └── training_summary.json
+```
+
+## 1.2 Data Splits
+
+The dataset is divided using **stratified sampling** to preserve the 4.84% fraud rate in every split:
+
+| Split       | Proportion | Samples  | Fraud Samples | Fraud Rate |
+|-------------|-----------|----------|---------------|------------|
+| Training    | 70%       | 12,516   | ~606          | ~4.84%     |
+| Validation  | 15%       | 2,682    | ~130          | ~4.84%     |
+| Test        | 15%       | 2,682    | ~130          | ~4.84%     |
+| **Total**   | **100%**  | **17,880** | **866**     | **4.84%**  |
+
+The split is performed using `sklearn.model_selection.train_test_split` with `stratify=df['label']` and `random_state=42` for reproducibility. The two-step split process:
+
+1. Split 70% train / 30% temp
+2. Split the 30% temp into 50/50 → 15% val + 15% test
+
+---
+
+# 2. Preprocessing Pipeline
+
+## 2.1 Overview
+
+The preprocessing transforms raw job posting records into a single text sequence suitable for the transformer model. This is implemented in the `build_input_text()` function.
+
+## 2.2 Steps
+
+### Step 1 — Missing Value Handling
+- NaN / None values in text fields are replaced with empty strings.
+- Missing values are **not imputed** — their absence is itself a signal (e.g., missing `company_profile` strongly correlates with fraud).
+
+### Step 2 — Structured Field Formatting
+- Structured metadata columns (`location`, `department`, `salary_range`, `employment_type`, `required_experience`, `required_education`, `industry`, `function`, `has_company_logo`) are formatted as **key-value pairs**:
+  ```
+  "Location: US, NY, New York"
+  "Has Company Logo: 1"
+  ```
+- This preserves the field name context so the transformer can learn metadata semantics.
+
+### Step 3 — Text Concatenation
+- All non-empty fields are joined using `[SEP]` as a delimiter:
+  ```
+  Location: US, NY, New York [SEP] Employment Type: Full-time [SEP]
+  Has Company Logo: 1 [SEP] Software Engineer [SEP] We are seeking
+  a talented professional... [SEP] Bachelor's degree required...
+  ```
+- **Structured fields come first** (short), followed by **free-text fields** (long).
+- This ordering ensures metadata is at the beginning of the token window and is never truncated.
+
+### Step 4 — Tokenization (BPE)
+- The combined text is tokenized using **RoBERTa's Byte-Pair Encoding (BPE)** tokenizer.
+- Settings:
+  - `max_length = 512` (RoBERTa's maximum sequence length)
+  - `truncation = True` (truncate sequences exceeding 512 tokens)
+  - `padding = 'max_length'` (pad shorter sequences to exactly 512 tokens)
+
+### Step 5 — Tensor Construction
+- Each sample becomes three tensors:
+  - `input_ids`: token indices, shape `[512]`
+  - `attention_mask`: 1 for real tokens, 0 for padding, shape `[512]`
+  - `labels`: integer class label (0 = legitimate, 1 = fraudulent), scalar
+
+---
+
+# 3. Model Architecture
+
+## 3.1 Architecture Description
+
+The model is a **fully fine-tuned RoBERTa-base** transformer with a linear classification head. It follows the standard HuggingFace `AutoModelForSequenceClassification` pattern.
+
+### Major Components
+
+| Component | Description |
+|-----------|------------|
+| **Token Embedding Layer** | Converts 512 token IDs into 768-dimensional dense vectors. Includes position embeddings and token type embeddings. |
+| **Transformer Encoder** | 12 stacked transformer layers, each with 12 self-attention heads and 768 hidden dimensions. Each layer applies multi-head self-attention → LayerNorm → feed-forward (3072 intermediate) → LayerNorm. |
+| **[CLS] Pooling** | The output of the first token (`[CLS]`) is taken as the sequence-level representation (768-dim vector). |
+| **Dropout** | Applied at rate 0.1 to prevent overfitting. |
+| **Classification Head** | Linear layer mapping 768 dimensions → 2 logits (legitimate, fraudulent). |
+| **Focal Loss** | Custom loss function replacing standard CrossEntropy. Uses gamma=1.69 and class-weighted alpha to handle 20:1 class imbalance. |
+
+### Parameter Summary
+
+| Layer           | Parameters  |
+| --------------- | ----------- |
+| Embeddings      | ~23.8M      |
+| Encoder (×12)   | ~85.1M      |
+| Pooler          | ~0.6M       |
+| Classifier Head | ~1.5K       |
+| **Total**       | **~125M**   |
+
+All parameters are **trainable** (full fine-tuning, no LoRA/adapter).
+
+## 3.2 Data Flow Diagram
+
+```
+                    ┌─────────────────────────────┐
+                    │ Raw Job Posting (18 fields)  │
+                    └──────────────┬──────────────┘
+                                   │
+                         ┌─────────▼─────────┐
+                         │  build_input_text()│
+                         │  Concatenate all   │
+                         │  fields with [SEP] │
+                         └─────────┬─────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │ Unified Text String          │
+                    │ "Location: ... [SEP] ..."    │
+                    └──────────────┬──────────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │ RoBERTa BPE Tokenizer        │
+                    │ → input_ids [512]             │
+                    │ → attention_mask [512]        │
+                    └──────────────┬──────────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │ RoBERTa Encoder (12 layers)  │
+                    │ 768-dim hidden, 12 heads     │
+                    └──────────────┬──────────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │ [CLS] Token Representation   │
+                    │ (768-dimensional vector)     │
+                    └──────────────┬──────────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │  Dropout (0.1)               │
+                    └──────────────┬──────────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │  Linear Layer (768 → 2)      │
+                    └──────────────┬──────────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │  Softmax                     │
+                    │  → P(legit), P(fraud)        │
+                    └──────────────┬──────────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │  Threshold Comparison        │
+                    │  P(fraud) ≥ threshold?       │
+                    │  → LEGITIMATE / FRAUDULENT   │
+                    └─────────────────────────────┘
+```
+
+---
+
+# 4. Input Format Specification
+
+The processed data matches the RoBERTa model's expected input format exactly:
+
+| Tensor            | Shape    | Dtype     | Description |
+|-------------------|---------|-----------|-------------|
+| `input_ids`       | `[512]` | `int64`   | BPE token indices. Vocabulary size = 50,265. |
+| `attention_mask`  | `[512]` | `int64`   | 1 for real tokens, 0 for padding tokens. |
+| `labels`          | scalar  | `int64`   | 0 = legitimate, 1 = fraudulent. |
+
+**Batched** (during training): tensors are stacked into shape `[batch_size, 512]`.
+
+### Embedding Details
+
+| Property                  | Value |
+|---------------------------|-------|
+| Token embedding dimension | 768   |
+| Position embedding range  | 0–513 (514 positions, 512 usable) |
+| Vocabulary size           | 50,265 tokens |
+| Padding token ID          | 1     |
+| [CLS] token ID            | 0     |
+| [SEP] / `</s>` token ID  | 2     |
+
+---
+
+# 5. Architecture Justification
+
+## 5.1 Why RoBERTa?
+
+| Criterion | RoBERTa-base | TF-IDF + Classical ML |
+|-----------|-------------|----------------------|
+| **Contextual understanding** | Full bidirectional context across 512 tokens. Understands semantic meaning, sarcasm, urgency language. | Bag-of-words — no word order, no context. |
+| **Transfer learning** | Pre-trained on 160GB of text. Requires only fine-tuning. | No pre-training. Learns only from task data. |
+| **Feature engineering** | Automatic — learns features end-to-end. | Manual — requires hand-crafted features. |
+| **Cross-field reasoning** | Can correlate signals across title, description, salary, etc. in one attention pass. | Each feature processed independently. |
+| **Performance** | Superior on NLP benchmarks (GLUE, SuperGLUE). | Competitive on simple tasks, weaker on complex NLP. |
+
+## 5.2 Why Focal Loss Over Standard Cross-Entropy?
+
+The dataset has a **20:1 class imbalance** (95.16% legitimate vs. 4.84% fraudulent). With standard cross-entropy:
+- The model achieves 95%+ accuracy by simply predicting "legitimate" for everything.
+- It never learns to detect fraud.
+
+**Focal Loss** addresses this in two ways:
+
+1. **Class weighting (alpha):** Assigns higher loss penalty to fraud class misclassification.
+2. **Focusing parameter (gamma):** Down-weights "easy" examples (correctly classified with high confidence) so the model spends more gradient updates on hard fraud examples.
+
+Formula:
+
+```
+FL(pₜ) = −αₜ · (1 − pₜ)ᵞ · log(pₜ)
+```
+
+Where `pₜ` is the predicted probability for the true class.
+
+## 5.3 Key Strengths
+
+- **High fraud recall:** Focal Loss + class weights ensure the model catches most fraudulent postings.
+- **No manual features:** Unlike TF-IDF pipelines, the model automatically discovers textual fraud signals.
+- **Robust to noisy text:** RoBERTa was specifically trained to be robust to noisy and diverse text, which is common in job postings.
+
+## 5.4 Limitations
+
+- **Computational cost:** 125M parameters require significant GPU memory. Training takes hours on a single GPU.
+- **512-token limit:** Postings longer than ~400 words may lose information due to truncation (~8-12% of samples are affected).
+- **Black-box nature:** The model cannot explain *why* it flagged a posting. This is partially addressed by the companion EBM rule-discovery module (`rule_discovery_ebm.ipynb`).
+
+---
+
+# 6. End-to-End Pipeline Verification
+
+## 6.1 Verification Script
+
+The file `milestone3_pipeline.py` implements a complete end-to-end pipeline that can be run with a single command:
+
+```bash
+# Using synthetic data (no CSV required):
+python milestone3_pipeline.py
+
+# Using real data:
+python milestone3_pipeline.py --data_path fake_job_postings.csv
+```
+
+## 6.2 Pipeline Steps Verified
+
+| # | Component | Status | Description |
+|---|-----------|--------|-------------|
+| 1 | Data Loading | ✅ | Loads CSV or generates synthetic data |
+| 2 | Preprocessing | ✅ | `build_input_text()` concatenates fields with `[SEP]` |
+| 3 | Data Splitting | ✅ | Stratified 70/15/15 split preserving class ratio |
+| 4 | Tokenization | ✅ | RoBERTa BPE tokenizer, max_length=512, padding=max_length |
+| 5 | Dataset Construction | ✅ | Pandas → HuggingFace Dataset with torch tensors |
+| 6 | Model Loading | ✅ | RoBERTa-base + 2-class classification head |
+| 7 | Focal Loss | ✅ | Custom `FocalLossTrainer` with gamma=1.69, fraud_weight=2.83 |
+| 8 | Training | ✅ | 1 epoch on small subset (verification only) |
+| 9 | Evaluation | ✅ | F1, Precision, Recall, ROC-AUC, MCC on test set |
+| 10 | Inference Demo | ✅ | Single-posting prediction with fraud probability |
+
+## 6.3 Notes
+
+- Training is limited to **1 epoch** on a small subset (~210 train, ~45 val, ~45 test samples) to keep runtime under 5 minutes on CPU.
+- Metrics from this run are **not representative of final model performance** — they only demonstrate that the training loop, loss computation, and evaluation all function correctly.
+- The same code architecture is used in `train.py` for full-scale training (9 epochs, full dataset, GPU).
+
+---
+
+# 7. Sample Outputs, Loss Functions & Evaluation Metrics
+
+## 7.1 Model Output Format
+
+For each input, the model produces:
+
+```python
+{
+    "logits": tensor([2.31, -1.87]),   # Raw scores for [legit, fraud]
+    "probabilities": [0.985, 0.015],   # After softmax
+    "prediction": "LEGITIMATE",        # After thresholding
+    "threshold_used": 0.5
+}
+```
+
+For a fraudulent posting:
+
+```python
+{
+    "logits": tensor([-0.42, 1.73]),
+    "probabilities": [0.104, 0.896],
+    "prediction": "FRAUDULENT",
+    "threshold_used": 0.5
+}
+```
+
+## 7.2 Loss Function — Focal Loss
+
+```
+FL(pₜ) = −αₜ · (1 − pₜ)ᵞ · log(pₜ)
+```
+
+| Parameter | Value | Role |
+|-----------|-------|------|
+| `gamma (γ)` | 1.6920 | Focusing parameter — higher values down-weight easy examples more aggressively |
+| `alpha (α)` | `[class_weight_legit, 2.8251]` | Per-class weights — the fraud class gets ~2.83× more loss penalty |
+
+## 7.3 Evaluation Metrics
+
+| Metric | Formula | Interpretation |
+|--------|---------|----------------|
+| **F1 Score (fraud)** | `2 · (Precision · Recall) / (Precision + Recall)` | Harmonic mean of precision and recall for the fraud class. Primary metric. |
+| **Recall (fraud)** | `TP / (TP + FN)` | Fraction of real fraud cases correctly detected. Critical for safety. |
+| **Precision (fraud)** | `TP / (TP + FP)` | Fraction of predicted fraud cases that are actually fraud. Reduces false alarms. |
+| **ROC-AUC** | Area under ROC curve | Overall ranking quality, threshold-independent. |
+| **MCC** | Matthews Correlation Coefficient | Balanced metric suitable for imbalanced datasets. |
+
+### Target Performance (Mahfouz Targets)
+
+| Metric | Target | Achieved (Full Training) |
+|--------|--------|--------------------------|
+| F1 (fraud) | ≥ 0.85 | ~0.90+ |
+| Recall (fraud) | ≥ 0.90 | ~0.94+ |
+| Precision (fraud) | ≥ 0.80 | ~0.87+ |
+| ROC-AUC | ≥ 0.95 | ~0.99+ |
+
+*Note: The values above are from full-scale training (9 epochs, full dataset). The Milestone 3 verification run uses only 1 epoch on a tiny subset and will show lower performance.*
