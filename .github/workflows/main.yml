@@ -2,6 +2,9 @@ name: Pipeline Demo CI
 
 on:
   push:
+  branches: [main]
+    tags:
+      - 'demo-*'
   workflow_dispatch:
 
 jobs:
