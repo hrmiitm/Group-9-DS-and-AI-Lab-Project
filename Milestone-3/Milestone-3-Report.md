@@ -149,7 +149,7 @@ All parameters are **trainable** (full fine-tuning, no LoRA/adapter).
 
 ```
                     ┌─────────────────────────────┐
-                    │ Raw Job Posting (18 fields)  │
+                    │ Raw Job Posting (18 fields) |
                     └──────────────┬──────────────┘
                                    │
                          ┌─────────▼─────────┐
@@ -159,8 +159,9 @@ All parameters are **trainable** (full fine-tuning, no LoRA/adapter).
                          └─────────┬─────────┘
                                    │
                     ┌──────────────▼──────────────┐
-                    │ Unified Text String          │
-                    │ "Location: ... [SEP] ..."    │
+                    │ Unified Text String         │
+                    │ "Location: US [SEP] 
+                    |  Emp Type: Full-time"       │
                     └──────────────┬──────────────┘
                                    │
                     ┌──────────────▼──────────────┐
