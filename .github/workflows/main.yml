@@ -1,0 +1,93 @@
+name: Pipeline Demo CI
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    env:
+      DATA_PATH: ./data/raw/fake_job_postings.csv
+      MODEL_PATH: aditya963/fraud-job-classifier
+      CI: true
+
+    steps:
+    # ─────────────────────────────────────────────
+    # 1. Checkout repo
+    # ─────────────────────────────────────────────
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # ─────────────────────────────────────────────
+    # 2. Setup Python
+    # ─────────────────────────────────────────────
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.10
+
+    # ─────────────────────────────────────────────
+    # 3. Cache dependencies (FASTER CI)
+    # ─────────────────────────────────────────────
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+    # ─────────────────────────────────────────────
+    # 4. Install dependencies
+    # ─────────────────────────────────────────────
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install kaggle
+
+    # ─────────────────────────────────────────────
+    # 5. Setup Kaggle credentials (secure)
+    # ─────────────────────────────────────────────
+    - name: Setup Kaggle API
+      run: |
+        mkdir -p ~/.kaggle
+        echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
+        chmod 600 ~/.kaggle/kaggle.json
+
+    # ─────────────────────────────────────────────
+    # 6. Download dataset (NOT stored in repo)
+    # ─────────────────────────────────────────────
+    - name: Download dataset (Kaggle)
+      run: |
+        mkdir -p data/raw
+        kaggle datasets download -d shivamb/real-or-fake-fake-jobposting-prediction
+        unzip real-or-fake-fake-jobposting-prediction.zip -d data/raw/
+
+    # ─────────────────────────────────────────────
+    # 7. Optional: show dataset structure (debug)
+    # ─────────────────────────────────────────────
+    - name: Debug dataset files
+      run: |
+        ls -R data/raw
+
+    # ─────────────────────────────────────────────
+    # 8. Cache Hugging Face models (BIG SPEEDUP)
+    # ─────────────────────────────────────────────
+    - name: Cache HuggingFace models
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/huggingface
+        key: hf-cache
+
+    # ─────────────────────────────────────────────
+    # 9. Run pipeline (uses subset internally)
+    # ─────────────────────────────────────────────
+    - name: Run pipeline demo
+      run: |
+        python src/pipeline_demo.py
+
+    # ─────────────────────────────────────────────
+    # 10. Success message
+    # ─────────────────────────────────────────────
+    - name: Done
+      run: echo "✅ Pipeline executed successfully"
