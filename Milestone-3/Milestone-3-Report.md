@@ -124,9 +124,9 @@ The model is a **fully fine-tuned RoBERTa-base** transformer with a linear class
 
 ### Major Components
 
-| Component | Description | Output Shape |
+| Component | Description |
 |-----------|------------|
-| **Token Embedding Layer** | Converts 512 token IDs into 768-dimensional dense vectors. Includes position embeddings and token type embeddings. |  (B, 512, 768)
+| **Token Embedding Layer** | Converts 512 token IDs into 768-dimensional dense vectors. Includes position embeddings and token type embeddings. |
 | **Transformer Encoder** | 12 stacked transformer layers, each with 12 self-attention heads and 768 hidden dimensions. Each layer applies multi-head self-attention → LayerNorm → feed-forward (3072 intermediate) → LayerNorm. |
 | **[CLS] Pooling** | The output of the first token (`[CLS]`) is taken as the sequence-level representation (768-dim vector). |
 | **Dropout** | Applied at rate 0.1 to prevent overfitting. |
