@@ -359,7 +359,7 @@ FL(pₜ) = −αₜ · (1 − pₜ)ᵞ · log(pₜ)
 | `gamma (γ)` | 1.6920 (Optuna-tuned) | Focusing parameter — higher values down-weight easy examples more aggressively |
 | `alpha (α)` | `[class_weight_legit, 2.83]` | Per-class weights — balancing the 95:5 imbalance |
 
-## 7.3 Evaluation Metrics
+## 7.3 Evaluation Metrics 
 
 | Metric | Formula | Interpretation |
 |--------|---------|----------------|
@@ -369,13 +369,23 @@ FL(pₜ) = −αₜ · (1 − pₜ)ᵞ · log(pₜ)
 | **ROC-AUC** | Area under ROC curve | Overall ranking quality, threshold-independent. |
 | **MCC** | Matthews Correlation Coefficient | Balanced metric suitable for imbalanced datasets. |
 
-### Target Performance (Mahfouz Targets)
 
-| Metric | Target | Achieved (Full Training) |
-|--------|--------|--------------------------|
-| F1 (fraud) | ≥ 0.85 | ~0.90+ |
-| Recall (fraud) | ≥ 0.90 | ~0.94+ |
-| Precision (fraud) | ≥ 0.80 | ~0.87+ |
-| ROC-AUC | ≥ 0.95 | ~0.99+ |
 
-*Note: The values above are from full-scale training (9 epochs, full dataset). The Milestone 3 verification run uses only 1 epoch on a tiny subset and will show lower performance.*
+# 8. Demo File 
+
+A self-contained pipeline_demo.ipynb notebook has been created alongside this report. It
+references and re-uses all functions defined in the original notebook
+(transformer_fraud_classifier_v3_2.ipynb) and is designed to run on CPU without a GPU or
+access to saved model weights. It serves as a smoke-test confirming that every component from
+data loading to forward pass operates correctly on a 50-sample subset.
+
+To run the demo:
+
+- **Step 1:** Open pipeline_demo.ipynb in Jupyter or Google Colab.
+- **Step 2:** Set DATA_PATH to the location of fake_job_postings.csv.
+- **Step 3:** Run All Cells (Runtime → Run all). No GPU required.
+- **Step 4:** Inspect printed outputs at each stage to confirm correct shapes and values.
+
+The demo intentionally uses random model weights (no checkpoint loading) so that it can be
+executed by any reviewer without requiring access to the Google Drive model directory. All shape
+assertions pass regardless of weight values.
