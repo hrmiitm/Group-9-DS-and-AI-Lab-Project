@@ -1,12 +1,17 @@
-DSAI Lab Project
+# DSAI PROJECT — MILESTONE 3
 
-**Milestone 3: Model Architecture, Design Justification & Pipeline Verification**
+## Model Architecture Design, Justification & Pipeline Verification
 
-**Transformer-Based Fake Job Posting Detection**
+### Transformer-Based Fake Job Posting Classifier
 
-Section 4.1 — AI-Powered Fraud Classification System
+**Project Type** NLP Binary Text Classification — Fraud Detection
 
-March 2026
+**Model** RoBERTa-base (Full Fine-Tuning)
+
+**Dataset** Fake Job Postings — 17,880 samples (4.84% fraud)
+
+**Platform** Google Colab (T4 GPU) — PyTorch + HuggingFace Transformers
+
 
 ---
 
@@ -68,7 +73,9 @@ The split is performed using `sklearn.model_selection.train_test_split` with `st
 
 ## 2.1 Overview
 
-The preprocessing transforms raw job posting records into a single text sequence suitable for the transformer model. This is implemented in the `build_input_text()` function.
+The raw CSV contains both structured metadata fields (e.g. location, employment type) and free-
+text fields (e.g. description, requirements). A unified preprocessing pipeline converts these
+heterogeneous signals into a single token sequence suitable for a transformer encoder.
 
 ## 2.2 Steps
 
@@ -105,7 +112,7 @@ The preprocessing transforms raw job posting records into a single text sequence
 - Each sample becomes three tensors:
   - `input_ids`: token indices, shape `[512]`
   - `attention_mask`: 1 for real tokens, 0 for padding, shape `[512]`
-  - `labels`: integer class label (0 = legitimate, 1 = fraudulent), scalar
+  - `labels`: integer class label (0 = legitimate, 1 = fraudulent), scalar 
 
 ---
 
