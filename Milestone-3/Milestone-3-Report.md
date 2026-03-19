@@ -355,8 +355,9 @@ FL(pₜ) = −αₜ · (1 − pₜ)ᵞ · log(pₜ)
 
 | Parameter | Value | Role |
 |-----------|-------|------|
-| `gamma (γ)` | 1.6920 | Focusing parameter — higher values down-weight easy examples more aggressively |
-| `alpha (α)` | `[class_weight_legit, 2.8251]` | Per-class weights — the fraud class gets ~2.83× more loss penalty |
+| `pₜ` |   | softmax probability of the ground-truth class |
+| `gamma (γ)` | 1.6920 (Optuna-tuned) | Focusing parameter — higher values down-weight easy examples more aggressively |
+| `alpha (α)` | `[class_weight_legit, 2.83]` | Per-class weights — balancing the 95:5 imbalance |
 
 ## 7.3 Evaluation Metrics
 
