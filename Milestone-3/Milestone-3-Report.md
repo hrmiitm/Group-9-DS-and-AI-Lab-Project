@@ -160,7 +160,7 @@ All parameters are **trainable** (full fine-tuning, no LoRA/adapter).
                                    │
                     ┌──────────────▼──────────────┐
                     │ Unified Text String         │
-                    │ "Location: US [SEP] 
+                    │ "Location: US [SEP]         |
                     |  Emp Type: Full-time"       │
                     └──────────────┬──────────────┘
                                    │
@@ -229,7 +229,16 @@ The processed data matches the RoBERTa model's expected input format exactly:
 
 # 5. Architecture Justification
 
-## 5.1 Why RoBERTa?
+## 5.1 Why a Transformer Encoder?
+
+Fraud detection in job postings is a semantically rich task. Fraudulent ads often contain subtle
+linguistic cues (exaggerated earnings claims, absent company details, urgency language)
+alongside structural signals (missing logo, no company profile). Bag-of-words models fail to
+capture cross-sentence context and subtle paraphrase patterns. Transformer self-attention
+attends globally over the entire 512-token sequence, linking salary claims in the structured
+metadata to suspicious language buried in the description.
+
+## 5.2 Why RoBERTa?
 
 | Criterion | RoBERTa-base | TF-IDF + Classical ML |
 |-----------|-------------|----------------------|
@@ -239,7 +248,16 @@ The processed data matches the RoBERTa model's expected input format exactly:
 | **Cross-field reasoning** | Can correlate signals across title, description, salary, etc. in one attention pass. | Each feature processed independently. |
 | **Performance** | Superior on NLP benchmarks (GLUE, SuperGLUE). | Competitive on simple tasks, weaker on complex NLP. |
 
-## 5.2 Why Focal Loss Over Standard Cross-Entropy?
+## 5.3 Why Full Fine-Tuning over LoRA/Adapters?
+
+Parameter-efficient methods (LoRA ~0.9M trainable params) freeze the encoder backbone and
+add rank-decomposed weight matrices. While computationally cheaper, they limit the encoder's
+ability to shift representations towards fraud-specific patterns. Given the highly imbalanced and
+domain-specific nature of the data (only 866 fraudulent examples), full fine-tuning allows every
+layer to adapt, yielding improved recall on the hard minority class. The 125M parameter model
+fits in T4 VRAM at fp32 with batch size 16 with gradient checkpointing.
+
+## 5.4 Why Focal Loss Over Standard Cross-Entropy?
 
 The dataset has a **20:1 class imbalance** (95.16% legitimate vs. 4.84% fraudulent). With standard cross-entropy:
 - The model achieves 95%+ accuracy by simply predicting "legitimate" for everything.
@@ -258,54 +276,43 @@ FL(pₜ) = −αₜ · (1 − pₜ)ᵞ · log(pₜ)
 
 Where `pₜ` is the predicted probability for the true class.
 
-## 5.3 Key Strengths
+## 5.5 Key Strengths
 
 - **High fraud recall:** Focal Loss + class weights ensure the model catches most fraudulent postings.
 - **No manual features:** Unlike TF-IDF pipelines, the model automatically discovers textual fraud signals.
 - **Robust to noisy text:** RoBERTa was specifically trained to be robust to noisy and diverse text, which is common in job postings.
 
-## 5.4 Limitations
+## 5.6 Limitations
 
 - **Computational cost:** 125M parameters require significant GPU memory. Training takes hours on a single GPU.
 - **512-token limit:** Postings longer than ~400 words may lose information due to truncation (~8-12% of samples are affected).
-- **Black-box nature:** The model cannot explain *why* it flagged a posting. This is partially addressed by the companion EBM rule-discovery module (`rule_discovery_ebm.ipynb`).
+- **Black-box nature:** The model cannot explain *why* it flagged a posting as of now.
 
 ---
 
 # 6. End-to-End Pipeline Verification
 
-## 6.1 Verification Script
+To verify that all pipeline components integrate correctly without requiring a full GPU training run,
+a lightweight demo script (pipeline_demo.ipynb) passes a 50-sample subset through the complete
+workflow from raw CSV loading to model inference. The demo uses CPU and runs in under 5
+minutes on any standard machine.
 
-The file `milestone3_pipeline.py` implements a complete end-to-end pipeline that can be run with a single command:
 
-```bash
-# Using synthetic data (no CSV required):
-python milestone3_pipeline.py
-
-# Using real data:
-python milestone3_pipeline.py --data_path fake_job_postings.csv
-```
-
-## 6.2 Pipeline Steps Verified
+## Pipeline Steps Verified
 
 | # | Component | Status | Description |
 |---|-----------|--------|-------------|
-| 1 | Data Loading | ✅ | Loads CSV or generates synthetic data |
-| 2 | Preprocessing | ✅ | `build_input_text()` concatenates fields with `[SEP]` |
-| 3 | Data Splitting | ✅ | Stratified 70/15/15 split preserving class ratio |
-| 4 | Tokenization | ✅ | RoBERTa BPE tokenizer, max_length=512, padding=max_length |
-| 5 | Dataset Construction | ✅ | Pandas → HuggingFace Dataset with torch tensors |
-| 6 | Model Loading | ✅ | RoBERTa-base + 2-class classification head |
-| 7 | Focal Loss | ✅ | Custom `FocalLossTrainer` with gamma=1.69, fraud_weight=2.83 |
-| 8 | Training | ✅ | 1 epoch on small subset (verification only) |
-| 9 | Evaluation | ✅ | F1, Precision, Recall, ROC-AUC, MCC on test set |
-| 10 | Inference Demo | ✅ | Single-posting prediction with fraud probability |
-
-## 6.3 Notes
-
-- Training is limited to **1 epoch** on a small subset (~210 train, ~45 val, ~45 test samples) to keep runtime under 5 minutes on CPU.
-- Metrics from this run are **not representative of final model performance** — they only demonstrate that the training loop, loss computation, and evaluation all function correctly.
-- The same code architecture is used in `train.py` for full-scale training (9 epochs, full dataset, GPU).
+| 1 | Data Loading | ✅ | DataFrame with 50 rows loaded, columns validated |
+| 2 | Missing value handling | ✅ | No NaN values in text fields after fillna |
+| 3 | Preprocessing | ✅ | `build_input_text()` concatenates fields with `[SEP]` |
+| 4 | Data Splitting | ✅ | Stratified 70/15/15 split preserving class ratio |
+| 5 | Tokenization | ✅ | RoBERTa BPE tokenizer, max_length=512, padding=max_length |
+| 6 | Dataset Construction | ✅ | Pandas → HuggingFace Dataset with torch tensors |
+| 7 | Model Loading | ✅ | RoBERTa classification head created, param count printed |
+| 8 | Forward pass (1 batch) | ✅ | Logits (batch,2) produced without error |
+| 9 | Loss computation (Focal Loss) | ✅ | Scalar loss computed and printed |
+| 10 | Evaluation | ✅ | F1, Precision, Recall, ROC-AUC on test set |
+| 11 | Inference Demo | ✅ | Single-posting prediction with fraud probability |
 
 ---
 
