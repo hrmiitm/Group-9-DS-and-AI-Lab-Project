@@ -124,31 +124,9 @@ The model is a **fully fine-tuned RoBERTa-base** transformer with a linear class
 
 ### Major Components
 
-```
-Component Description Output Shape
-```
-```
-Input Embedding Token + position embeddings (vocab 50,265; hidden 768) (B, 512, 768)
-```
-```
-Transformer Encoder 12 stacked selfdim 3,072 - attention layers, 12 heads, FFN (B, 512, 768)
-```
-```
-[CLS] Pooling Extract positionrepresentation - 0 hidden state as sequence (B, 768)
-```
-```
-Dropout Regularisation (p=0.1) applied before classification head (B, 768)
-```
-```
-Classification Head Linear(768 → 2) Fraudulent} —^ logits for {Legitimate, (B, 2)
-```
-```
-Output Softmax probabilities; threshold at 0.87 → binary label (B, 2) / scalar
-```
-
-| Component | Description |
+| Component | Description | Output Shape |
 |-----------|------------|
-| **Token Embedding Layer** | Converts 512 token IDs into 768-dimensional dense vectors. Includes position embeddings and token type embeddings. |
+| **Token Embedding Layer** | Converts 512 token IDs into 768-dimensional dense vectors. Includes position embeddings and token type embeddings. |  (B, 512, 768)
 | **Transformer Encoder** | 12 stacked transformer layers, each with 12 self-attention heads and 768 hidden dimensions. Each layer applies multi-head self-attention → LayerNorm → feed-forward (3072 intermediate) → LayerNorm. |
 | **[CLS] Pooling** | The output of the first token (`[CLS]`) is taken as the sequence-level representation (768-dim vector). |
 | **Dropout** | Applied at rate 0.1 to prevent overfitting. |
