@@ -318,7 +318,35 @@ minutes on any standard machine.
 
 # 7. Sample Outputs, Loss Functions & Evaluation Metrics
 
-## 7.1 Model Output Format
+## 7.1 Sample Model Output
+
+```
+Input (truncated):
+'Employment Type: Part-time [SEP] Salary Range: 5000-20000 [SEP]
+Work From Home Data Entry Specialist [SEP] Earn $5000/week working
+from home. No experience needed. Send your bank details to get
+started immediately.'
+```
+```
+Model Output:
+{
+'fraud_probability': 0.9847,
+'prediction': 'FRAUDULENT',
+'threshold_used': 0.
+}
+```
+For a genuine-looking posting (complete company profile, realistic salary, detailed requirements),
+the model outputs:
+
+```
+Model Output:
+{
+'fraud_probability': 0.0213,
+'prediction': 'LEGITIMATE',
+'threshold_used': 0.
+}
+```
+
 
 For each input, the model produces:
 
