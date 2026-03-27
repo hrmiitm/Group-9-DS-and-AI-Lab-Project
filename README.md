@@ -1,10 +1,9 @@
 
 <div align="center">
-  <img src="static/Milestone2Summary.png" alt="Proposed System Workflow Architecture" width="800">
+  <img src="docs/Milestone-2/Initial Work M2/Milestone2Summary.png" alt="Proposed System Workflow Architecture" width="800">
   <br>
   <em>Milestone 2 Summary</em>
 </div>
-
 
 
 # Fraud Job Posting Classifier
