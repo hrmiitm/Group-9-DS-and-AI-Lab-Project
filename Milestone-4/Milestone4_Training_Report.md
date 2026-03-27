@@ -1,12 +1,20 @@
-# MILESTONE 4
+# DSAI Lab PROJECT — MILESTONE 4
+
 ## Model Training Report
-### Transformer Fraud Classifier
-#### Hyperparameter Experiments, Optimization & Regularization Study
 
-March 27, 2026
-DSAI Lab — Fraud Detection Project
+### Transformer-Based Fake Job Posting Classifier
 
-## Table of Contents
+#### Hyperparameter Experiments, Optimization & Regularization Study 
+
+**Project Type** NLP Binary Text Classification — Fraud Detection
+
+**Model** RoBERTa-base (Full Fine-Tuning)
+
+**Dataset** Fake Job Postings — 17,880 samples (4.84% fraud)
+
+**Platform** Google Colab (T4 GPU) — PyTorch + HuggingFace Transformers
+
+---
 
 ## 1. Dataset & Preprocessing
 The Kaggle Fake Job Postings dataset (shivamb/real-or-fake-fake-jobposting-prediction) was used across all experiments. It contains approximately 17,880 job listings with a binary fraudulent label, yielding a severe class imbalance of roughly 4.8% fraud and 95.2% legitimate postings (an approximate 20:1 ratio).
