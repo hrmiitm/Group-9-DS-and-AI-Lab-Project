@@ -191,7 +191,7 @@ example_posting = {
 result = predict_fraud(example_posting, model, tokenizer, config)
 # Expected output:
 # {'fraud_probability': 0.92, 'prediction': 'FRAUDULENT',
-#  'threshold_used': 0.45}
+#  'threshold_used': 0.87}
 ```
 
 ## 7.3 Batch Inference via Threshold
