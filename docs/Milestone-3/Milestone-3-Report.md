@@ -2,7 +2,7 @@
 
 ## Model Architecture Design, Justification & Pipeline Verification
 
-![Overview](Initial Work M3/Infographics/Head.png)
+![Overview](Initial_Work_M3/Infographics/Head.png)
 
 ### Transformer-Based Fake Job Posting Classifier
 
