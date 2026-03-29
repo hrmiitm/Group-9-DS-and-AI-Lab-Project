@@ -394,7 +394,7 @@ Model Output:
 {
 'fraud_probability': 0.9847,
 'prediction': 'FRAUDULENT',
-'threshold_used': 0.
+'threshold_used': 0.87
 }
 ```
 For a genuine-looking posting (complete company profile, realistic salary, detailed requirements),
@@ -405,7 +405,7 @@ Model Output:
 {
 'fraud_probability': 0.0213,
 'prediction': 'LEGITIMATE',
-'threshold_used': 0.
+'threshold_used': 0.87
 }
 ```
 
