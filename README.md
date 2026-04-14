@@ -117,7 +117,7 @@ Group-9-DS-and-AI-Lab-Project/
 We've also built a **Chrome extension** that brings the fraud detection directly to LinkedIn! When browsing job listings, click the "Analyze Job" button to get an instant AI-powered prediction of whether the job is legitimate or potentially fake along with the reasoning and links for users to cross verify.
 
 👉 **See [webextension/README.md](webextension/README.md) for full documentation and setup.**
-👉 **Quick start: [webextension/SETUP.md](webextension/SETUP.md)**
+👉 **Quick start: [webextension/SETUP.md](webextension/SETUP.md) **
 
 ## Model Architecture
 
