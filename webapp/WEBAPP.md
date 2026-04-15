@@ -62,9 +62,10 @@ webapp/
 │   ├── job_extractor.py     extract_from_text / extract_from_file / extract_from_linkedin
 │   │                        → (JobPosting, raw_text)
 │   │                        Uses: core/job_parser_agent + langchain_openai
-│   ├── tool_runner.py       run_all_tools(job, raw_text) → dict[tool_name, result]
+│   ├── tool_runner.py       run_all_tools(job, raw_text, field_overrides=None)
 │   │                        Uses: all 12 tools from tools/ + core/helpers
-│   ├── analyzer.py          run_analysis(job_id, ...) — full 4-step pipeline
+│   ├── analyzer.py          run_analysis(job_id, ...) — extraction + deep research + tools + report
+│   │                        Includes: deep_research_missing_fields() + run_candidate_tool_checks()
 │   │                        Writes progress to results/<job_id>.json after each step
 │   └── linkedin.py          scrape_linkedin_job(url) → str | None
 │                            requests + BeautifulSoup, gracefully returns None if blocked
@@ -84,12 +85,14 @@ webapp/
 │   ├── results.html         Results page with verdict banner, tool grid, report
 │   ├── history.html         Table of all past analyses
 │   └── components/
-│       ├── job_info.html    Extracted JobPosting fields card
+│       ├── job_info.html    JD + enriched values with source tags (JD vs Deep Research)
+│       ├── deep_research.html   Deep research summary, missing fields, evidence sources
+│       ├── candidate_tools.html Candidate-level tool outputs for all discovered emails/phones/websites
 │       ├── tool_block.html  Per-tool card: status badge + inference + collapsible raw JSON
 │       └── report.html      Final markdown report + web source chips + copy button
 │
 ├── static/
-│   ├── css/style.css        Dark theme, verdict color system, responsive grid
+│   ├── css/style.css        Enriched glassmorphism-like light theme + responsive data cards
 │   └── js/main.js           Settings modal, file drop UX, flash auto-dismiss
 │
 ├── results/                 Auto-created. UUID-keyed JSON files (one per analysis).
@@ -124,17 +127,54 @@ webapp/
     - `routes/api.py` now allows clearing session overrides by sending empty values.
     - `GET /api/settings` now returns the effective settings source (`env` / `session` / `config`).
 
+4. **Missing JD data now enriched via Deep Research + multi-candidate tool checks**
+  - **Symptom:** many postings lacked email/phone/website in source text, causing weak investigations.
+  - **Fix:**
+    - Added external deep research stage in `services/analyzer.py` to search and recover likely missing contacts/websites.
+    - Added candidate-level verification for all discovered emails/phones/websites (including multiple values) via tool calls.
+    - Added explicit source labels in UI so users can distinguish JD-provided vs deep-research-found data.
+    - Added enriched JSON fields: `job_posting_enriched`, `deep_research`, `candidate_tool_results`.
+
+5. **UI redesign for readability and richer insight presentation**
+  - Improved layout, typography, cards, chips, data hierarchy, and raw payload presentation.
+  - Added dedicated sections for:
+    - deep research evidence and applied overrides
+    - multi-candidate tool results with per-item status
+    - source transparency tags (`From JD` vs `Deep Research`).
+
+### Change Ledger (Memory-Friendly)
+
+| Date | Area | What changed | Key files |
+|------|------|--------------|-----------|
+| 2026-04-15 | Reliability | Fixed scam signal rendering mismatch (`signals_found` int vs list) and made template backward-compatible | `tools/tool_scam_signals.py`, `templates/components/tool_block.html` |
+| 2026-04-15 | Runtime robustness | Forced absolute template/static paths in Flask factory to avoid import-context issues | `app.py` |
+| 2026-04-15 | LLM routing | Added env-first precedence for proxy routing and session-clear behavior for stale overrides | `routes/main.py`, `routes/api.py`, `static/js/main.js` |
+| 2026-04-15 | Data completeness | Added deep research enrichment stage for missing email/phone/website and applied safe overrides | `services/analyzer.py` |
+| 2026-04-15 | Investigation depth | Added candidate-level tool execution for all discovered emails/phones/websites (JD + deep research) | `services/analyzer.py`, `services/tool_runner.py` |
+| 2026-04-15 | UX/Presentation | Added dedicated deep research + candidate verification sections and redesigned visual system | `templates/results.html`, `templates/components/deep_research.html`, `templates/components/candidate_tools.html`, `templates/components/job_info.html`, `templates/base.html`, `static/css/style.css` |
+| 2026-04-15 | Documentation | Updated architecture, enhanced pipeline, and expanded results schema for new fields | `WEBAPP.md` |
+
+### Validation Snapshot
+
+Last verified after the above changes:
+
+1. Python compile check passed for `webapp/`.
+2. Flask render smoke tests passed for `/` and `/results/<id>` with enriched payload.
+3. Results page confirmed to render deep research and candidate-level sections.
+
 ### Recommended Next Steps
 
 1. Implement `tools/tool_company_registry.py` (currently stubbed).
-2. Add lightweight tests for:
+2. Add lightweight automated tests for:
   - `GET /` returns 200
   - `GET /results/<job_id>` renders successfully for both old and new `scam_signals` payload shapes
+  - deep research + candidate sections render when `deep_research` and `candidate_tool_results` are present
 3. Enforce `MAX_UPLOAD_BYTES` in upload flow (`routes/main.py`) to prevent oversized uploads.
+4. Add guardrails for deep-research latency (timeouts/result caps already present, but add per-step timing metrics in saved JSON).
 
 ---
 
-## Analysis Pipeline (4 Steps)
+## Analysis Pipeline (Enhanced)
 
 ```
 User Input (text / file / LinkedIn URL)
@@ -144,10 +184,19 @@ Step 1 — EXTRACT
   LLM reads raw text → fills JobPosting Pydantic model (16 fields)
   Uses: core/job_parser_agent.JobPosting + langchain_openai.ChatOpenAI.with_structured_output()
         ↓
-Step 2 — INVESTIGATE (12 tools)
-  services/tool_runner.py → run_all_tools(job, raw_text)
+Step 1b — DEEP RESEARCH ENRICHMENT
+  services/analyzer.py → deep_research_missing_fields(job_dict, raw_text)
+  Searches external web sources (DuckDuckGo) for missing email/phone/website
+  Produces candidate lists + applied overrides for missing JD fields
+        ↓
+Step 2 — INVESTIGATE PRIMARY PATH (12 tools)
+  services/tool_runner.py → run_all_tools(job, raw_text, field_overrides)
   Each tool returns: {ok: bool, data: {...}} or {ok: false, error: "..."}
   Tools skipped if required input (email/website/phone/company) not found
+        ↓
+Step 2b — CANDIDATE TOOL CHECKS (multi-value)
+  services/analyzer.py → run_candidate_tool_checks(...)
+  Runs tools for all discovered emails/phones/websites (JD + deep research)
         ↓
 Step 3 — INFER (one LLM call per tool)
   services/analyzer.py → infer_tool_result(tool_name, result, job_dict)
@@ -174,7 +223,18 @@ Each analysis is stored at `results/<uuid>.json`:
   "input_type":         "text | file | url",
   "raw_text":           "...",
   "job_posting":        { "title": "...", "company_name": "...", ... },
+  "job_posting_enriched": { "contact_email": "...", "contact_phone": "...", ... },
+  "deep_research": {
+    "missing_from_jd": ["contact_email", "contact_phone", "company_website"],
+    "candidates": { "emails": [...], "phones": [...], "websites": [...] },
+    "applied_overrides": { "contact_email": "...", "contact_phone": "..." }
+  },
   "tool_results":       { "scam_signals": { "ok": true, "data": {...} }, ... },
+  "candidate_tool_results": {
+    "emails":   [ { "value": "...", "source": "jd|deep_research", "results": {...} } ],
+    "phones":   [ { "value": "...", "source": "jd|deep_research", "results": {...} } ],
+    "websites": [ { "value": "...", "source": "jd|deep_research", "results": {...} } ]
+  },
   "tool_inferences":    { "scam_signals": "2-4 sentence inference", ... },
   "web_search_results": [ { "query": "...", "title": "...", "url": "...", "snippet": "..." } ],
   "final_report":       "## Fraud Risk Assessment\n...",

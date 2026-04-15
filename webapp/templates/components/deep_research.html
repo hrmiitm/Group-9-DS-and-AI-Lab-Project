@@ -1,0 +1,105 @@
+{% set dr = data.get("deep_research") or {} %}
+{% if dr %}
+<section class="section section--research">
+  <div class="card card--research">
+    <div class="card__header card__header--stack">
+      <div>
+        <h2>🧭 Deep Research Enrichment</h2>
+        <p class="section__subtitle">
+          External search was used to discover details that were missing or weak in the original JD.
+          Values in this section are marked as <strong>not directly provided in the JD</strong>.
+        </p>
+      </div>
+      {% if dr.get("ran") %}
+      <span class="badge badge--research">Research Active</span>
+      {% else %}
+      <span class="badge badge--neutral">Research Skipped</span>
+      {% endif %}
+    </div>
+
+    {% if dr.get("missing_from_jd") %}
+    <div class="research-missing">
+      <span class="research-label">Missing in JD</span>
+      <div class="chip-list">
+        {% for f in dr.get("missing_from_jd", []) %}
+          <span class="chip chip--warn">{{ f }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if dr.get("applied_overrides") %}
+    <div class="research-applied">
+      <h3>Applied to Primary Analysis</h3>
+      <div class="research-grid">
+        {% for key, value in dr.get("applied_overrides", {}).items() %}
+          <div class="research-card">
+            <span class="research-card__label">{{ key }}</span>
+            <span class="research-card__value">{{ value }}</span>
+            <span class="origin-chip origin-chip--research">Found via Deep Research (not in JD)</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if dr.get("summary") %}
+    <div class="research-stats">
+      <div class="stat">
+        <span class="stat__value">{{ dr.summary.get("emails_found", 0) }}</span>
+        <span class="stat__label">Emails Found</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value">{{ dr.summary.get("phones_found", 0) }}</span>
+        <span class="stat__label">Phones Found</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value">{{ dr.summary.get("websites_found", 0) }}</span>
+        <span class="stat__label">Websites Found</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value">{{ dr.summary.get("external_sources_scanned", 0) }}</span>
+        <span class="stat__label">Sources Scanned</span>
+      </div>
+    </div>
+    {% endif %}
+
+    {% set cands = dr.get("candidates") or {} %}
+    {% if cands %}
+    <div class="research-group-grid">
+      {% for group_name, items in [("emails", cands.get("emails", [])), ("phones", cands.get("phones", [])), ("websites", cands.get("websites", []))] %}
+      <div class="research-group">
+        <h3>{{ group_name | capitalize }} Candidates</h3>
+        {% if items %}
+          <ul class="research-list">
+            {% for item in items %}
+              <li>
+                <span class="research-value">{{ item.get("value") }}</span>
+                <span class="origin-chip origin-chip--research">Deep Research</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted">No {{ group_name }} discovered externally.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if dr.get("evidence") %}
+    <details class="expandable">
+      <summary>Deep Research Evidence Sources</summary>
+      <div class="evidence-list">
+        {% for ev in dr.evidence[:10] %}
+          <a href="{{ ev.get('url') }}" target="_blank" rel="noopener" class="evidence-item">
+            <span class="evidence-title">{{ ev.get("title") or ev.get("url") }}</span>
+            <span class="evidence-query">Query: {{ ev.get("query") }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </div>
+</section>
+{% endif %}

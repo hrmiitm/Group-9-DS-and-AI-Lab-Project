@@ -25,6 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (apiKeyEl)  apiKeyEl.placeholder  = data.api_key  ? '*** (set)' : 'sk-... (leave blank for env var)';
         if (modelEl)   modelEl.value         = data.model   || '';
         if (baseUrlEl) baseUrlEl.value       = data.base_url || '';
+        if (statusEl && data.source) {
+          statusEl.textContent = `Active source: ${data.source}`;
+          setTimeout(() => {
+            if (statusEl.textContent === `Active source: ${data.source}`) {
+              statusEl.textContent = '';
+            }
+          }, 4000);
+        }
       })
       .catch(() => {});
 

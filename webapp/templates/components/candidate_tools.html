@@ -1,0 +1,101 @@
+{% set ctr = data.get("candidate_tool_results") or {} %}
+{% if ctr and (ctr.get("emails") or ctr.get("phones") or ctr.get("websites")) %}
+<section class="section section--candidate-tools">
+  <div class="card card--candidate-tools">
+    <div class="card__header card__header--stack">
+      <div>
+        <h2>🧪 Candidate-Level Tool Verification</h2>
+        <p class="section__subtitle">
+          Every discovered email, phone, and website is verified independently.
+          Items tagged <strong>Deep Research</strong> were not explicitly provided in the JD.
+        </p>
+      </div>
+      <span class="badge badge--neutral">Multi-Input Tool Runs</span>
+    </div>
+
+    {% if ctr.get("summary") %}
+    <div class="candidate-summary">
+      <div class="stat"><span class="stat__value">{{ ctr.summary.get("email_candidates", 0) }}</span><span class="stat__label">Email Candidates</span></div>
+      <div class="stat"><span class="stat__value">{{ ctr.summary.get("phone_candidates", 0) }}</span><span class="stat__label">Phone Candidates</span></div>
+      <div class="stat"><span class="stat__value">{{ ctr.summary.get("website_candidates", 0) }}</span><span class="stat__label">Website Candidates</span></div>
+      <div class="stat"><span class="stat__value">{{ ctr.summary.get("deep_research_candidates", 0) }}</span><span class="stat__label">Deep Research Candidates</span></div>
+    </div>
+    {% endif %}
+
+    {% for group_name, items in [("emails", ctr.get("emails", [])), ("phones", ctr.get("phones", [])), ("websites", ctr.get("websites", []))] %}
+      {% if items %}
+      <h3 class="candidate-group-title">{{ group_name | capitalize }}</h3>
+      <div class="candidate-grid">
+        {% for item in items %}
+        <article class="candidate-card">
+          <div class="candidate-card__header">
+            <span class="candidate-card__value">{{ item.get("value") }}</span>
+            {% if item.get("source") == "jd" %}
+              <span class="origin-chip origin-chip--jd">From JD</span>
+            {% else %}
+              <span class="origin-chip origin-chip--research">Deep Research (not in JD)</span>
+            {% endif %}
+          </div>
+
+          {% if item.get("results") %}
+          <div class="candidate-tools-list">
+            {% for tool_name, tool_res in item.results.items() %}
+            <div class="candidate-tool-line">
+              <span class="candidate-tool-name">{{ tool_name }}</span>
+              <span class="candidate-tool-status {{ 'candidate-tool-status--ok' if tool_res.get('ok') else 'candidate-tool-status--fail' }}">
+                {{ 'OK' if tool_res.get('ok') else 'Failed/Skipped' }}
+              </span>
+            </div>
+
+            {% if tool_res.get("ok") and tool_res.get("data") %}
+              {% set d = tool_res.get("data") %}
+              <div class="candidate-tool-kv">
+                {% if tool_name == "email_verify" %}
+                  <span>Status: {{ d.get("overall_status", "unknown") }}</span>
+                  <span>Disposable: {{ d.get("is_disposable") }}</span>
+                {% elif tool_name == "domain_reputation" %}
+                  <span>Risk: {{ d.get("risk_level", "unknown") }}</span>
+                  <span>Age: {{ d.get("domain_age_days", "?") }} days</span>
+                {% elif tool_name == "phone_check" %}
+                  <span>Valid: {{ d.get("is_valid") }}</span>
+                  <span>Region: {{ d.get("region_code", "?") }}</span>
+                {% elif tool_name == "website_verify" %}
+                  <span>Status: {{ d.get("status_code", "?") }}</span>
+                  <span>SSL: {{ d.get("ssl_valid") }}</span>
+                {% elif tool_name == "website_content" %}
+                  <span>Words: {{ d.get("word_count", 0) }}</span>
+                  <span>Truncated: {{ d.get("extracted_text_truncated", false) }}</span>
+                {% endif %}
+              </div>
+            {% else %}
+              <p class="candidate-tool-error">{{ tool_res.get("error", "No data") }}</p>
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if item.get("evidence") %}
+          <details class="expandable">
+            <summary>Research Evidence</summary>
+            <ul class="evidence-mini-list">
+              {% for ev in item.evidence[:3] %}
+                <li>
+                  <a href="{{ ev.get('url') }}" target="_blank" rel="noopener">{{ ev.get("title") or ev.get("url") }}</a>
+                </li>
+              {% endfor %}
+            </ul>
+          </details>
+          {% endif %}
+
+          <details class="expandable">
+            <summary>Raw Candidate Tool Payload</summary>
+            <pre>{{ item.results | pretty_json }}</pre>
+          </details>
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

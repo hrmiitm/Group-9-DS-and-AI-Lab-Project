@@ -36,7 +36,7 @@ def _skip(reason: str) -> dict[str, Any]:
     return {"ok": False, "error": f"Skipped: {reason} not available in posting"}
 
 
-def run_all_tools(job, raw_text: str) -> dict[str, Any]:
+def run_all_tools(job, raw_text: str, field_overrides: dict[str, str] | None = None) -> dict[str, Any]:
     """
     Run all 12 tools against the parsed job data.
 
@@ -48,6 +48,12 @@ def run_all_tools(job, raw_text: str) -> dict[str, Any]:
         dict keyed by tool name, each value is {ok: bool, data/error: ...}
     """
     job_dict = job.model_dump()
+
+    # Optional values discovered outside the JD can be merged before tool execution.
+    if field_overrides:
+        for key, value in (field_overrides or {}).items():
+            if value and not job_dict.get(key):
+                job_dict[key] = value
 
     # ── Extract / infer key fields ────────────────────────────────────────────
     email   = job_dict.get("contact_email") or _first_match(_EMAIL_RE, raw_text)

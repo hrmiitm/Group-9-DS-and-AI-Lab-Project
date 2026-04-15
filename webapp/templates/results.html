@@ -51,6 +51,16 @@
   {% include "components/job_info.html" %}
 {% endif %}
 
+<!-- ── Deep Research Enrichment ─────────────────────────────────────── -->
+{% if data.deep_research %}
+  {% include "components/deep_research.html" %}
+{% endif %}
+
+<!-- ── Candidate Tool Checks (all discovered contacts) ───────────────── -->
+{% if data.candidate_tool_results %}
+  {% include "components/candidate_tools.html" %}
+{% endif %}
+
 <!-- ── Tool Results ──────────────────────────────────────────────────── -->
 {% if data.tool_results %}
 <section class="section">

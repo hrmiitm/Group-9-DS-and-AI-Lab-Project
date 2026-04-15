@@ -1,63 +1,83 @@
 {% set jp = data.job_posting or {} %}
-<div class="card">
+{% set je = data.get("job_posting_enriched") or {} %}
+
+<div class="card card--data">
   <div class="card__header">
-    <h2>📋 Extracted Job Information</h2>
-    <span class="badge badge--neutral">AI Extracted</span>
+    <h2>📋 Job Information Map</h2>
+    <div class="badge-row">
+      <span class="badge badge--neutral">AI Extracted</span>
+      <span class="badge badge--research">Deep Research Enriched</span>
+    </div>
   </div>
+
   <div class="job-info-grid">
     {% set fields = [
-      ("Job Title",        jp.get("title")),
-      ("Company",          jp.get("company_name")),
-      ("Location",         jp.get("location")),
-      ("Industry",         jp.get("industry")),
-      ("Department",       jp.get("department")),
-      ("Employment Type",  jp.get("employment_type")),
-      ("Experience Level", jp.get("required_experience")),
-      ("Education",        jp.get("required_education")),
-      ("Salary Range",     jp.get("salary_range")),
-      ("Job Function",     jp.get("function")),
-      ("Website",          jp.get("company_website")),
-      ("Email",            jp.get("contact_email")),
-      ("Phone",            jp.get("contact_phone")),
+      ("title",               "Job Title",        false),
+      ("company_name",        "Company",          false),
+      ("location",            "Location",         false),
+      ("industry",            "Industry",         false),
+      ("department",          "Department",       false),
+      ("employment_type",     "Employment Type",  false),
+      ("required_experience", "Experience Level", false),
+      ("required_education",  "Education",        false),
+      ("salary_range",        "Salary Range",     false),
+      ("function",            "Job Function",     false),
+      ("company_website",     "Website",          true),
+      ("contact_email",       "Email",            false),
+      ("contact_phone",       "Phone",            false),
     ] %}
-    {% for label, value in fields %}
-      {% if value %}
+
+    {% for key, label, is_link in fields %}
+      {% set jd_value = jp.get(key) %}
+      {% set enriched_value = je.get(key) %}
+      {% set final_value = enriched_value or jd_value %}
+      {% if final_value %}
       <div class="job-field">
         <span class="job-field__label">{{ label }}</span>
+
         <span class="job-field__value">
-          {% if label == "Website" and value %}
-            <a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>
+          {% if is_link %}
+            <a href="{{ final_value }}" target="_blank" rel="noopener">{{ final_value }}</a>
           {% else %}
-            {{ value }}
+            {{ final_value }}
           {% endif %}
         </span>
+
+        {% if jd_value and enriched_value and jd_value != enriched_value %}
+          <span class="origin-chip origin-chip--research">Primary value from Deep Research</span>
+          <span class="job-field__meta">Originally in JD: {{ jd_value }}</span>
+        {% elif jd_value %}
+          <span class="origin-chip origin-chip--jd">From JD</span>
+        {% else %}
+          <span class="origin-chip origin-chip--research">Found via Deep Research (not in JD)</span>
+        {% endif %}
       </div>
       {% endif %}
     {% endfor %}
 
-    {# Binary flags #}
     {% set flags = [] %}
     {% if jp.get("telecommuting") == 1 %}{% set _ = flags.append("Remote / Telecommuting") %}{% endif %}
     {% if jp.get("has_company_logo") == 1 %}{% set _ = flags.append("Has Company Logo") %}{% endif %}
     {% if jp.get("has_questions") == 1 %}{% set _ = flags.append("Includes Screening Questions") %}{% endif %}
     {% if flags %}
     <div class="job-field job-field--full">
-      <span class="job-field__label">Flags</span>
+      <span class="job-field__label">JD Flags</span>
       <span class="job-field__value">{{ flags | join(" · ") }}</span>
+      <span class="origin-chip origin-chip--jd">From JD</span>
     </div>
     {% endif %}
   </div>
 
   {% if jp.get("company_profile") %}
   <details class="expandable">
-    <summary>Company Profile</summary>
+    <summary>Company Profile (from JD)</summary>
     <p>{{ jp.company_profile }}</p>
   </details>
   {% endif %}
 
   {% if jp.get("description") %}
   <details class="expandable">
-    <summary>Job Description (extracted)</summary>
+    <summary>Job Description (extracted from input)</summary>
     <p>{{ jp.description[:1500] }}{% if jp.description | length > 1500 %}…{% endif %}</p>
   </details>
   {% endif %}
