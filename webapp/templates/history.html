@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Analysis History — Webetention{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📜 Analysis History</h1>
+  <a href="{{ url_for('main.index') }}" class="btn btn--primary">+ New Analysis</a>
+</div>
+
+{% if jobs %}
+<div class="card">
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Company</th>
+        <th>Verdict</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      <tr>
+        <td>{{ job.title or "—" }}</td>
+        <td>{{ job.company or "—" }}</td>
+        <td>
+          {% if job.verdict %}
+          {% set vc = {"SAFE": "safe", "SUSPICIOUS": "suspicious", "LIKELY_FAKE": "fake"}.get(job.verdict, "suspicious") %}
+          <span class="verdict-badge verdict-badge--{{ vc }} verdict-badge--small">{{ job.verdict }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td><span class="status-chip status-chip--{{ job.status }}">{{ job.status }}</span></td>
+        <td class="meta-date">{{ job.created_at[:19] if job.created_at else "—" }}</td>
+        <td><a href="{{ url_for('main.results', job_id=job.job_id) }}" class="btn btn--outline btn--small">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card empty-state">
+  <p>No analyses yet. <a href="{{ url_for('main.index') }}">Start your first analysis →</a></p>
+</div>
+{% endif %}
+{% endblock %}

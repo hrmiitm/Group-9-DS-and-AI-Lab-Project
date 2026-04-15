@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Webetention — Fraud Job Detector{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- ── Navigation ───────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <a href="{{ url_for('main.index') }}" class="navbar__brand">
+      🛡️ Webetention
+    </a>
+    <div class="navbar__links">
+      <a href="{{ url_for('main.results_list') }}" class="navbar__link">History</a>
+      <button class="navbar__link btn-icon" id="settingsBtn" title="Settings">⚙️ Settings</button>
+    </div>
+  </nav>
+
+  <!-- ── Flash messages ───────────────────────────────────────────── -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="flash flash--{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- ── Page content ─────────────────────────────────────────────── -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ── Settings Modal ───────────────────────────────────────────── -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal__header">
+        <h2>⚙️ LLM Settings</h2>
+        <button class="modal__close" id="settingsClose">✕</button>
+      </div>
+      <div class="modal__body">
+        <p class="modal__hint">
+          Settings are stored in your session. Use
+          <code>OPENAI_API_KEY=$AIPIPE_TOKEN</code> env var as default,
+          or override here per-session.
+        </p>
+        <div class="form-group">
+          <label for="s_api_key">API Key</label>
+          <input type="password" id="s_api_key" placeholder="sk-... (leave blank to use env var)" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="s_base_url">Base URL</label>
+          <input type="text" id="s_base_url" value="" placeholder="https://aipipe.org/openrouter/v1">
+        </div>
+        <div class="form-group">
+          <label for="s_model">Model</label>
+          <input type="text" id="s_model" value="" placeholder="openai/gpt-4o-mini">
+        </div>
+        <div class="modal__actions">
+          <button class="btn btn--primary" id="saveSettings">Save Settings</button>
+          <span class="settings-status" id="settingsStatus"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

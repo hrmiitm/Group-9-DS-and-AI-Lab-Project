@@ -1,0 +1,56 @@
+{% set verdict = data.get("verdict", "SUSPICIOUS") %}
+{% set verdict_class = {
+  "SAFE":        "safe",
+  "SUSPICIOUS":  "suspicious",
+  "LIKELY_FAKE": "fake"
+}.get(verdict, "suspicious") %}
+
+<div class="card card--report">
+  <div class="card__header">
+    <h2>📊 Fraud Analysis Report</h2>
+    <span class="verdict-badge verdict-badge--{{ verdict_class }}">
+      {% if verdict == "SAFE" %}✅ SAFE
+      {% elif verdict == "SUSPICIOUS" %}⚠️ SUSPICIOUS
+      {% else %}🚫 LIKELY FAKE
+      {% endif %}
+    </span>
+  </div>
+
+  {% if data.get("web_search_results") %}
+  <div class="web-sources">
+    <h4>🌐 Web Intelligence Sources</h4>
+    <div class="source-chips">
+      {% for r in data.web_search_results[:6] %}
+        {% if r.get("url") %}
+          <a href="{{ r.url }}" target="_blank" rel="noopener" class="source-chip" title="{{ r.get('snippet', '') | truncate(120) }}">
+            {{ r.get("title", r.url) | truncate(50) }}
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="report-body">
+    {{ data.get("final_report", "Report not available.") | markdown }}
+  </div>
+
+  <div class="report-actions">
+    <button class="btn btn--secondary" id="copyReportBtn" data-report="{{ data.get('final_report', '') | e }}">
+      📋 Copy Report
+    </button>
+    <a href="{{ url_for('main.index') }}" class="btn btn--outline">
+      🔍 Analyze Another Job
+    </a>
+  </div>
+</div>
+
+<script>
+document.getElementById('copyReportBtn').addEventListener('click', function() {
+  const text = this.dataset.report;
+  navigator.clipboard.writeText(text).then(() => {
+    this.textContent = '✅ Copied!';
+    setTimeout(() => { this.textContent = '📋 Copy Report'; }, 2000);
+  });
+});
+</script>

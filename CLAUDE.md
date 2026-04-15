@@ -26,15 +26,17 @@ python src/train.py --data_path data/fake_job_postings.csv --output_dir models/r
 python src/eval.py --model_dir models/roberta-focal-best --data_path data/fake_job_postings.csv
 python src/eval.py --model_dir models/roberta-focal-best --infer
 
-# Run the free evidence pipeline on a job document
-cd src/job_analyzer
-python run.py path/to/job_posting.pdf
-# Outputs: evidence_output.json + llm_prompt.txt
+# Run the free evidence pipeline on a job document (from project root)
+python src/job_analyzer/run.py path/to/job_posting.pdf
+# Outputs: src/job_analyzer/outputs/<stem>_summary_<timestamp>.txt
+#           src/job_analyzer/outputs/<stem>_tool_evidence_<timestamp>.txt
 
 # Test individual evidence tools
 python src/job_analyzer/tools/tool_email_verify.py
 python src/job_analyzer/tools/tool_domain_reputation.py
 ```
+
+The evidence pipeline requires `OPENAI_API_KEY` by default (for `job_parser_agent.py`). Switch providers via env vars — see [LangChain ReAct Agent](#langchain-react-agent) section.
 
 ### Chrome Extension
 
@@ -55,32 +57,47 @@ No build step — the extension uses vanilla ES modules loaded directly by the b
 
 ### Free Evidence Pipeline (`src/job_analyzer/`)
 
-12 tool chain that requires **no API keys**:
+12-tool chain that requires **no API keys** (except `job_parser_agent.py` for extraction):
 
 | Stage | Tools | Method |
 |-------|-------|--------|
-| Extract | `tool_extract_job_details` | spaCy NER + phonenumbers |
+| Extract | `job_parser_agent.py` | LangChain ReAct + LLM |
 | Verify email & domain | `tool_email_verify`, `tool_domain_reputation` | DNS MX + WHOIS |
 | Company research | `tool_company_wikipedia`, `tool_company_web_search`, `tool_company_news` | Wikipedia API + DuckDuckGo |
-| Website | `tool_website_verify`, `tool_website_content` | HTTP + trafilatura |
+| Website | `_tool_website_verify`, `_tool_website_content` | HTTP + trafilatura |
 | Social/boards | `tool_social_profiles`, `tool_job_boards` | DuckDuckGo |
-| Signal scoring | `tool_phone_check`, `tool_scam_signals` | phonenumbers + keyword scoring |
+| Signal scoring | `tool_phone_check`, `_tool_scam_signals` | phonenumbers + keyword scoring |
+| Registry | `_tool_company_registry` | DuckDuckGo company lookup |
 
-`run.py` orchestrates all 12 tools and writes `evidence_output.json` + `llm_prompt.txt` (ready for Step 2 manual LLM review).
+Tools prefixed with `_` are internal (not standalone-runnable). `run.py` orchestrates all tools via `build_context()` → `run_all_tools()` → `write_reports()` and writes two timestamped `.txt` files to `src/job_analyzer/outputs/`.
 
 ### Chrome Extension (`webextension/`)
 
-**Data flow:** LinkedIn DOM → `content.js` scrapes → `background.js` service worker orchestrates tools → Gemini API → verdict overlay injected by `content.js`.
+**Data flow (parallel architecture):**
+
+```
+LinkedIn DOM → content.js scrapes job data
+                        ↓
+              background.js dispatches two branches in parallel:
+                ├── RoBERTaTool → HuggingFace Inference API (aditya963/fraud-job-classifier)
+                └── DetectLinksTool → LinkScraperTool → ContentAggregatorTool
+                        ↓ (both branches complete)
+              JobAnalyzerTool → Gemini (gemini-2.5-flash)
+              receives: RoBERTa fraud score + scraped link evidence
+                        ↓
+              content.js ← verdict overlay injected
+```
 
 **Custom framework** (`webextension/lib/`):
 - `langchain-core.js`: `BaseTool` (timing, caching, validation), `ToolRegistry`, `Chain`, `ToolResult`
 - `pipeline.js`: `PipelineConfig` (Standard/Quick/Deep modes), `PipelineBuilder`, `ContentAggregatorTool`
 
 **Tool pipeline** (`webextension/tools/`):
-1. `DetectLinksTool` — regex URL extraction + categorization (job board / career / social / form)
-2. `LinkScraperTool` — parallel fetch (concurrency=3) with retry/backoff
-3. `TextExtractor` — HTML → clean text, JSON-LD extraction
-4. `JobAnalyzerTool` — builds prompt with 30-point red flag taxonomy, calls Gemini, parses JSON verdict
+1. `RoBERTaTool` — calls HuggingFace Inference API; builds `[SEP]`-delimited input matching Python training format; threshold=0.87
+2. `DetectLinksTool` — regex URL extraction + categorization (job board / career / social / form)
+3. `LinkScraperTool` — parallel fetch (concurrency=3) with retry/backoff
+4. `TextExtractor` — HTML → clean text, JSON-LD extraction
+5. `JobAnalyzerTool` — builds prompt with 30-point red flag taxonomy + RoBERTa score, calls Gemini, parses JSON verdict
 
 **Analysis modes** (configured in `background.js`):
 - **Quick**: No link scraping, brief prompt
@@ -91,12 +108,27 @@ No build step — the extension uses vanilla ES modules loaded directly by the b
 
 **Settings**: Gemini API key stored via `chrome.storage.local`, managed in `popup.html/js`.
 
-### LangChain ReAct Agent (`AgenticWork/` and `src/job_analyzer/job_parser_agent.py`)
+### LangChain ReAct Agent
 
-Extracts 18 structured features from multi-format job documents (PDF, DOCX, HTML, MD, TXT) using LangChain ReAct. Separate `requirements.txt` in `AgenticWork/` includes `langchain`, `langchain-openai`, `docx2txt`, `pypdf`, `unstructured`.
+`src/job_analyzer/job_parser_agent.py` and `AgenticWork/job_parser_agent.py` extract 18 structured features from multi-format job documents (PDF, DOCX, HTML, MD, TXT) using LangChain ReAct. The version in `src/job_analyzer/` is imported as a library by `run.py`.
+
+Supports multiple LLM providers via env vars — no code changes needed:
+
+```bash
+# Default
+export OPENAI_API_KEY="sk-..."                                     # OpenAI gpt-4.1-nano
+
+# Alternatives
+AGENT_PROVIDER=anthropic AGENT_MODEL=claude-3-5-sonnet-20241022
+AGENT_PROVIDER=google    AGENT_MODEL=gemini-2.0-flash
+AGENT_PROVIDER=ollama    AGENT_MODEL=llama3.1
+
+python AgenticWork/job_parser_agent.py path/to/job_description.pdf
+```
 
 ## Key Configuration
 
 - `src/job_analyzer/config.py`: `REQUEST_TIMEOUT=20`, `DEFAULT_PHONE_REGION="IN"`, User-Agent header
 - `webextension/manifest.json`: MV3, host permissions include `https://*/*` for link scraping and `https://generativelanguage.googleapis.com/*` for Gemini
+- `webextension/tools/roberta-tool.js`: `FRAUD_THRESHOLD=0.87`, `HF_MODEL_URL` points to `aditya963/fraud-job-classifier`
 - Model hyperparameters (LR=2.59e-05, batch=16, threshold=0.87) are in `src/train.py` — sourced from Optuna trial 18

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Webetention — Analyze a Job Posting{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <h1 class="hero__title">🛡️ Fraud Job Detector</h1>
+  <p class="hero__subtitle">
+    Paste a job description, upload a file, or provide a LinkedIn URL.
+    We run 12 investigative tools and an AI analysis to detect scams.
+  </p>
+</div>
+
+<div class="card card--input">
+  <!-- ── Input type tabs ──────────────────────────────────────────── -->
+  <div class="tabs" id="inputTabs">
+    <button class="tab tab--active" data-tab="text">📝 Paste Text</button>
+    <button class="tab" data-tab="file">📎 Upload File</button>
+    <button class="tab" data-tab="url">🔗 LinkedIn URL</button>
+  </div>
+
+  <form id="analyzeForm" action="{{ url_for('main.analyze') }}" method="POST" enctype="multipart/form-data">
+
+    <!-- ── Text input ─────────────────────────────────────────────── -->
+    <div class="tab-panel tab-panel--active" id="panel-text">
+      <input type="hidden" name="input_type" value="text" id="inputTypeHidden">
+      <div class="form-group">
+        <label for="job_text">Job Description</label>
+        <textarea
+          id="job_text"
+          name="job_text"
+          rows="12"
+          placeholder="Paste the full job description here — include company name, requirements, contact details, etc."
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- ── File upload ────────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-file">
+      <div class="form-group">
+        <label for="job_file">Upload Job Document</label>
+        <div class="file-drop" id="fileDrop">
+          <input type="file" id="job_file" name="job_file"
+                 accept=".pdf,.docx,.doc,.txt,.html,.md" class="file-input">
+          <div class="file-drop__label">
+            <span class="file-drop__icon">📄</span>
+            <span>Drag &amp; drop or <strong>click to browse</strong></span>
+            <span class="file-drop__hint">PDF, DOCX, TXT, HTML, MD — max 10 MB</span>
+          </div>
+          <div class="file-drop__selected" id="fileSelected" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LinkedIn URL ───────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-url">
+      <div class="form-group">
+        <label for="linkedin_url">LinkedIn Job URL</label>
+        <input type="url" id="linkedin_url" name="linkedin_url"
+               placeholder="https://www.linkedin.com/jobs/view/...">
+        <p class="form-hint">
+          ⚠️ LinkedIn often blocks automated scraping. If it fails, paste the
+          job description in the "Paste Text" tab instead.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Submit ────────────────────────────────────────────────── -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary btn--large" id="submitBtn">
+        <span class="btn__text">🔍 Analyze Job Posting</span>
+        <span class="btn__spinner" style="display:none;">⏳ Analyzing… (this may take 1-2 min)</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- ── How it works ───────────────────────────────────────────────── -->
+<div class="how-it-works">
+  <h2>How It Works</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step__num">1</div>
+      <div class="step__body">
+        <strong>Extract</strong>
+        <span>AI reads the job description and extracts structured fields: company, email, website, phone, salary.</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step__num">2</div>
+      <div class="step__body">
+        <strong>Investigate</strong>
+        <span>12 free tools check email DNS, domain age, Wikipedia presence, social profiles, job boards, scam signals, and more.</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step__num">3</div>
+      <div class="step__body">
+        <strong>Analyze</strong>
+        <span>AI interprets each tool's findings, runs a web search for fraud complaints, and produces a detailed risk report.</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step__num">4</div>
+      <div class="step__body">
+        <strong>Verdict</strong>
+        <span>Receive a clear <span class="verdict-inline verdict-inline--safe">SAFE</span>,
+        <span class="verdict-inline verdict-inline--suspicious">SUSPICIOUS</span>, or
+        <span class="verdict-inline verdict-inline--fake">LIKELY FAKE</span> verdict with evidence.</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Tab switching — updates the hidden input_type field
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('tab-panel--active'));
+      tab.classList.add('tab--active');
+      document.getElementById('panel-' + target).classList.add('tab-panel--active');
+      document.getElementById('inputTypeHidden').value = target;
+    });
+  });
+
+  // File drop UX
+  const fileDrop = document.getElementById('fileDrop');
+  const fileInput = document.getElementById('job_file');
+  const fileSelected = document.getElementById('fileSelected');
+
+  fileDrop.addEventListener('click', () => fileInput.click());
+  fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('file-drop--over'); });
+  fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('file-drop--over'));
+  fileDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    fileDrop.classList.remove('file-drop--over');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      showFileName(e.dataTransfer.files[0].name);
+    }
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) showFileName(fileInput.files[0].name);
+  });
+  function showFileName(name) {
+    fileSelected.textContent = '📄 ' + name;
+    fileSelected.style.display = 'block';
+    document.querySelector('.file-drop__label').style.display = 'none';
+  }
+
+  // Show spinner on submit
+  document.getElementById('analyzeForm').addEventListener('submit', () => {
+    const btn = document.getElementById('submitBtn');
+    btn.querySelector('.btn__text').style.display = 'none';
+    btn.querySelector('.btn__spinner').style.display = 'inline';
+    btn.disabled = true;
+  });
+</script>
+{% endblock %}

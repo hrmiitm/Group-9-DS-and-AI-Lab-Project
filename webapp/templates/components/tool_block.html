@@ -1,0 +1,125 @@
+{#
+  Expects loop vars set by results.html:
+    tool_name  : str
+    result     : dict  {ok, data/error}
+    inference  : str
+#}
+{% set ok = result.get("ok", False) %}
+{% set label = tool_labels.get(tool_name, tool_name) %}
+{% set icon  = tool_icons.get(tool_name, "🔧") %}
+
+<div class="tool-block tool-block--{{ 'ok' if ok else 'fail' }}">
+  <div class="tool-block__header">
+    <span class="tool-block__icon">{{ icon }}</span>
+    <h3 class="tool-block__title">{{ label }}</h3>
+    <span class="tool-badge tool-badge--{{ 'ok' if ok else 'fail' }}">
+      {{ "✓ OK" if ok else "✕ Skipped/Failed" }}
+    </span>
+  </div>
+
+  <div class="tool-block__inference">
+    {{ inference or "No inference available." }}
+  </div>
+
+  {% if ok and result.get("data") %}
+    {% set d = result["data"] %}
+
+    {# ── Scam signals: show score prominently ── #}
+    {% if tool_name == "scam_signals" and d.get("scam_score") is not none %}
+    <div class="tool-metric">
+      <span class="tool-metric__label">Scam Score</span>
+      <div class="score-bar">
+        <div class="score-bar__fill score-bar__fill--{{ d.get('risk_level', 'low') }}"
+             style="width: {{ [d.get('scam_score', 0), 100] | min }}%"></div>
+      </div>
+      <span class="tool-metric__value">{{ d.get("scam_score", 0) }}/100
+        · <strong>{{ d.get("risk_level", "?") | upper }}</strong></span>
+    </div>
+
+    {# Backward-compatible tags: supports old int signals_found and new list signals_found #}
+    {% set signal_tags = [] %}
+    {% if d.get("signals_found") is iterable and d.get("signals_found") is not string %}
+      {% set signal_tags = d.get("signals_found") %}
+    {% elif d.get("matched_signals") %}
+      {% set signal_tags = d.get("matched_signals").keys() | list %}
+    {% endif %}
+
+    {% if signal_tags %}
+    <div class="tool-tags">
+      {% for sig in signal_tags[:6] %}
+        <span class="tag tag--red">{{ sig }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {# ── Domain reputation: age + risk level ── #}
+    {% if tool_name == "domain_reputation" %}
+    <div class="tool-meta-row">
+      {% if d.get("domain_age_days") is not none %}
+        <span class="meta-chip">Age: {{ d["domain_age_days"] }} days</span>
+      {% endif %}
+      {% if d.get("risk_level") %}
+        <span class="meta-chip meta-chip--{{ d['risk_level'] }}">Risk: {{ d["risk_level"] | upper }}</span>
+      {% endif %}
+      {% if d.get("is_live") is not none %}
+        <span class="meta-chip">Live: {{ "Yes" if d["is_live"] else "No" }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Email verify: status chips ── #}
+    {% if tool_name == "email_verify" %}
+    <div class="tool-meta-row">
+      {% if d.get("overall_status") %}
+        <span class="meta-chip meta-chip--{{ 'ok' if d['overall_status'] == 'deliverable' else 'warn' }}">
+          {{ d["overall_status"] | upper }}
+        </span>
+      {% endif %}
+      {% if d.get("is_disposable") %}
+        <span class="meta-chip meta-chip--red">Disposable domain</span>
+      {% endif %}
+      {% if d.get("is_role_account") %}
+        <span class="meta-chip meta-chip--warn">Role account</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Job boards: verdict + board count ── #}
+    {% if tool_name == "job_boards" and d.get("verdict") %}
+    <div class="tool-meta-row">
+      <span class="meta-chip meta-chip--{{ 'ok' if d['boards_found'] and d['boards_found'] > 0 else 'warn' }}">
+        {{ d["boards_found"] or 0 }} boards found
+      </span>
+      <span class="meta-chip">{{ d["verdict"] | upper }}</span>
+    </div>
+    {% endif %}
+
+    {# ── Social profiles ── #}
+    {% if tool_name == "social_profiles" and d.get("platforms_found") is not none %}
+    <div class="tool-meta-row">
+      <span class="meta-chip meta-chip--{{ 'ok' if d['platforms_found'] > 0 else 'warn' }}">
+        {{ d["platforms_found"] }} platform(s) found
+      </span>
+    </div>
+    {% endif %}
+
+    {# ── Wikipedia ── #}
+    {% if tool_name == "company_wikipedia" and d.get("wikipedia_url") %}
+    <div class="tool-meta-row">
+      <a href="{{ d['wikipedia_url'] }}" target="_blank" rel="noopener" class="meta-link">
+        View Wikipedia page →
+      </a>
+    </div>
+    {% endif %}
+
+  {% elif not ok %}
+    <div class="tool-block__error">{{ result.get("error", "Unknown error") }}</div>
+  {% endif %}
+
+  {# ── Collapsible raw JSON ── #}
+  <details class="tool-block__raw">
+    <summary>Raw Data</summary>
+    <pre>{{ result | pretty_json }}</pre>
+  </details>
+</div>

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Results — {{ (data.job_posting or {}).get("title", "Job Analysis") }}{% endblock %}
+
+{% block content %}
+{% set verdict = data.get("verdict") %}
+{% set status  = data.get("status") %}
+
+<!-- ── Error state ──────────────────────────────────────────────────── -->
+{% if status == "error" %}
+<div class="card card--error">
+  <h2>❌ Analysis Failed</h2>
+  <p>{{ data.get("error", "An unknown error occurred.") }}</p>
+  {% if "LinkedIn blocked" in data.get("error", "") or "scrape" in data.get("error", "") %}
+  <p class="hint">
+    LinkedIn frequently blocks automated access. Please
+    <a href="{{ url_for('main.index') }}">go back</a> and paste the job description manually.
+  </p>
+  {% endif %}
+  <a href="{{ url_for('main.index') }}" class="btn btn--primary">← Try Again</a>
+</div>
+
+{% else %}
+
+<!-- ── Page header with verdict ─────────────────────────────────────── -->
+{% set verdict_class = {"SAFE": "safe", "SUSPICIOUS": "suspicious", "LIKELY_FAKE": "fake"}.get(verdict, "suspicious") %}
+<div class="results-header results-header--{{ verdict_class }}">
+  <div class="results-header__inner">
+    <div>
+      <h1 class="results-title">
+        {{ (data.job_posting or {}).get("title", "Job Posting Analysis") }}
+      </h1>
+      <p class="results-company">
+        {{ (data.job_posting or {}).get("company_name", "") }}
+        {% if (data.job_posting or {}).get("location") %}
+          · {{ (data.job_posting or {}).get("location") }}
+        {% endif %}
+      </p>
+    </div>
+    {% if verdict %}
+    <div class="verdict-badge verdict-badge--{{ verdict_class }} verdict-badge--large">
+      {% if verdict == "SAFE" %}✅ SAFE
+      {% elif verdict == "SUSPICIOUS" %}⚠️ SUSPICIOUS
+      {% else %}🚫 LIKELY FAKE{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Job Info ──────────────────────────────────────────────────────── -->
+{% if data.job_posting %}
+  {% include "components/job_info.html" %}
+{% endif %}
+
+<!-- ── Tool Results ──────────────────────────────────────────────────── -->
+{% if data.tool_results %}
+<section class="section">
+  <h2 class="section__title">🔬 Investigative Tool Results</h2>
+  <p class="section__subtitle">
+    {{ data.tool_results.values() | selectattr("ok") | list | length }} of
+    {{ data.tool_results | length }} tools returned data.
+  </p>
+  <div class="tools-grid">
+    {% set tool_order = [
+      "scam_signals", "email_verify", "domain_reputation",
+      "website_verify", "website_content",
+      "company_wikipedia", "company_web_search", "company_news",
+      "social_profiles", "job_boards", "phone_check", "company_registry"
+    ] %}
+    {% for tool_name in tool_order %}
+      {% if tool_name in data.tool_results %}
+        {% set result    = data.tool_results[tool_name] %}
+        {% set inference = (data.tool_inferences or {}).get(tool_name, "") %}
+        {% include "components/tool_block.html" %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ── Final Report ──────────────────────────────────────────────────── -->
+{% if data.final_report %}
+  {% include "components/report.html" %}
+{% endif %}
+
+<!-- ── Analysis metadata ─────────────────────────────────────────────── -->
+<div class="meta-footer">
+  <span>Analysis ID: <code>{{ data.job_id }}</code></span>
+  <span>Created: {{ data.created_at }}</span>
+  <a href="{{ url_for('main.index') }}" class="btn btn--outline btn--small">← New Analysis</a>
+</div>
+
+{% endif %}
+{% endblock %}
