@@ -510,7 +510,7 @@ def main():
     tool = None
     if args.live:
         try:
-            from company_verification_tool import CompanyVerificationTool, SERP_API_KEY
+            from testing_work.src.tools.company_verification.company_verification_tool import CompanyVerificationTool, SERP_API_KEY
             if not SERP_API_KEY:
                 print("[ERROR] SERP_API_KEY not set. Run without --live for mock mode.")
                 sys.exit(1)

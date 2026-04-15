@@ -7,9 +7,9 @@ TOOL: Website liveness, SSL, and redirect chain check.
 import sys, json, requests
 sys.path.insert(0, "..")
 try:
-    from .. import config
+    from .....src.job_analyzer import config
 except ImportError:
-    import config
+    import testing_work.src.job_analyzer.config as config
 
 def verify_website(url: str) -> dict:
     """

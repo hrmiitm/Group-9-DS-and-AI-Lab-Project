@@ -1,5 +1,5 @@
 from serpapi import GoogleSearch
-from company_verification_tool import SERP_API_KEY, CompanyVerificationTool
+from testing_work.src.tools.company_verification.company_verification_tool import SERP_API_KEY, CompanyVerificationTool
 
 # from dotenv import load_dotenv
 # import os

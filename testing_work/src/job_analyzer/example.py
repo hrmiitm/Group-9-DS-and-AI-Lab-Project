@@ -8,7 +8,7 @@ Run:
 import json
 import sys
 
-from job_parser_agent import JobPosting, parse_job_posting
+from testing_work.src.job_analyzer.job_parser_agent import JobPosting, parse_job_posting
 
 
 def main(file_path: str) -> None:

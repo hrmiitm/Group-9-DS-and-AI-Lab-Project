@@ -8,9 +8,9 @@ from phonenumbers import PhoneNumberFormat, carrier, geocoder
 from phonenumbers import timezone as phone_tz
 sys.path.insert(0, "..")
 try:
-    from .. import config
+    from .....src.job_analyzer import config
 except ImportError:
-    import config
+    import testing_work.src.job_analyzer.config as config
 
 def check_phone_number(phone: str, region: str = None) -> dict:
     """

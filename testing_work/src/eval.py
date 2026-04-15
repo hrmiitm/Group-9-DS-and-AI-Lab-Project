@@ -53,7 +53,7 @@ from transformers import (
 # ── Allow imports from src/utils when running as script ──────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from utils import (
+from testing_work.src.utils import (
     build_input_text,
     load_and_prepare_data,
     build_hf_datasets,

@@ -23,7 +23,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 try:
-	from . import job_parser_agent
+	from ....src.job_analyzer import job_parser_agent
 	from .tools._tool_company_registry import get_company_registry
 	from .tools._tool_scam_signals import detect_scam_signals
 	from .tools._tool_website_content import extract_website_content
@@ -37,19 +37,19 @@ try:
 	from .tools.tool_phone_check import check_phone_number
 	from .tools.tool_social_profiles import check_social_profiles
 except ImportError:
-	import job_parser_agent
-	from tools._tool_company_registry import get_company_registry
-	from tools._tool_scam_signals import detect_scam_signals
-	from tools._tool_website_content import extract_website_content
-	from tools._tool_website_verify import verify_website
-	from tools.tool_company_news import search_company_news
-	from tools.tool_company_web_search import search_company_web
-	from tools.tool_company_wikipedia import get_company_wikipedia
-	from tools.tool_domain_reputation import check_domain_reputation
-	from tools.tool_email_verify import verify_email
-	from tools.tool_job_boards import check_job_boards
-	from tools.tool_phone_check import check_phone_number
-	from tools.tool_social_profiles import check_social_profiles
+	import testing_work.src.job_analyzer.job_parser_agent as job_parser_agent
+	from testing_work.src.job_analyzer.tools._tool_company_registry import get_company_registry
+	from testing_work.src.job_analyzer.tools._tool_scam_signals import detect_scam_signals
+	from testing_work.src.job_analyzer.tools._tool_website_content import extract_website_content
+	from testing_work.src.job_analyzer.tools._tool_website_verify import verify_website
+	from testing_work.src.job_analyzer.tools.tool_company_news import search_company_news
+	from testing_work.src.job_analyzer.tools.tool_company_web_search import search_company_web
+	from testing_work.src.job_analyzer.tools.tool_company_wikipedia import get_company_wikipedia
+	from testing_work.src.job_analyzer.tools.tool_domain_reputation import check_domain_reputation
+	from testing_work.src.job_analyzer.tools.tool_email_verify import verify_email
+	from testing_work.src.job_analyzer.tools.tool_job_boards import check_job_boards
+	from testing_work.src.job_analyzer.tools.tool_phone_check import check_phone_number
+	from testing_work.src.job_analyzer.tools.tool_social_profiles import check_social_profiles
 
 
 EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")

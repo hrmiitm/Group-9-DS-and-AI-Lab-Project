@@ -1,9 +1,9 @@
 from pyexpat import features
 from sys import flags
 
-from metadata_preprocessing import MetadataPreprocessor
-from anomaly_model import MetadataAnomalyModel
-from rules_engine import RulesEngine
+from testing_work.src.tools.metadata_detector.metadata_preprocessing import MetadataPreprocessor
+from testing_work.src.tools.metadata_detector.anomaly_model import MetadataAnomalyModel
+from testing_work.src.tools.metadata_detector.rules_engine import RulesEngine
 
 class MetadataDetector:
 

@@ -8,9 +8,9 @@ Strategy:
 import sys, json, requests
 sys.path.insert(0, "..")
 try:
-    from .. import config
+    from .....src.job_analyzer import config
 except ImportError:
-    import config
+    import testing_work.src.job_analyzer.config as config
 
 
 def get_company_wikipedia(company_name: str) -> dict:
