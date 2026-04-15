@@ -6,17 +6,52 @@ models/*/scaler.pt
 models/*/rng_state.pth
 models/
 
-#Datasets
+# Datasets
 data/
 
 # Test probabilities
 *.npy
+
+# IDE
 .vscode/
+.idea/
+
 # Checkpoints
 checkpoints/
-.ipynb_checkpoints
+.ipynb_checkpoints/
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Environment
 .env
+.env.local
+.env.*.local
+venv/
+.venv/
+env/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Web-app runtime dirs (auto-created, store user data)
+web-app/results/
+web-app/uploads/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large binary files
+*.bin
+*.pt
+*.safetensors
+*.zip
+*.tar.gz

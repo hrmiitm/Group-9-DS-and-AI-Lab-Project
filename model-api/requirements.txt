@@ -1,0 +1,16 @@
+# ── Inference server ─────────────────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# ── ML / Model ───────────────────────────────────────────────────────────────
+# torch CPU-only wheel — keeps the image under 2 GB on HF Spaces free tier
+# The --extra-index-url is passed by the Dockerfile pip install command
+torch==2.2.2+cpu
+transformers==4.47.1
+tokenizers==0.21.1
+safetensors==0.4.5
+huggingface-hub==0.27.1
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+pydantic==2.9.2
+numpy==1.26.4
