@@ -9,30 +9,68 @@ Device: CPU (HuggingFace Spaces free tier).
 """
 from __future__ import annotations
 
+import glob
 import os
-from functools import lru_cache
+import threading
 from typing import Optional
 
 MODEL_ID = os.getenv("ROBERTA_MODEL_ID", "aditya963/fraud-job-classifier")
 FRAUD_THRESHOLD = float(os.getenv("ROBERTA_THRESHOLD", "0.87"))
 
+_pipeline_lock  = threading.Lock()
+_cached_pipeline = None   # set to (clf, None) on success; (None, err_str) on failure
 
-@lru_cache(maxsize=1)
+
+def _remove_stale_locks(cache_root: str):
+    """Remove any .lock files left by a previously killed download."""
+    for lock_file in glob.glob(os.path.join(cache_root, "**", "*.lock"), recursive=True):
+        try:
+            os.remove(lock_file)
+        except OSError:
+            pass
+
+
 def _load_pipeline():
-    """Load model once, cache forever (lru_cache on module singleton)."""
-    try:
-        from transformers import pipeline as hf_pipeline
-        clf = hf_pipeline(
-            "text-classification",
-            model=MODEL_ID,
-            device=-1,           # CPU
-            truncation=True,
-            max_length=512,
-            top_k=None,          # return all labels
+    """Load model once, cache in module-level variable (thread-safe)."""
+    global _cached_pipeline
+    if _cached_pipeline is not None:
+        return _cached_pipeline
+
+    with _pipeline_lock:
+        # Double-checked locking
+        if _cached_pipeline is not None:
+            return _cached_pipeline
+
+        # Remove stale lock files before attempting download
+        cache_dir = os.environ.get(
+            "TRANSFORMERS_CACHE",
+            os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "transformers"),
         )
-        return clf, None
-    except Exception as e:
-        return None, str(e)
+        _remove_stale_locks(cache_dir)
+
+        try:
+            from transformers import pipeline as hf_pipeline
+            clf = hf_pipeline(
+                "text-classification",
+                model=MODEL_ID,
+                device=-1,       # CPU
+                truncation=True,
+                max_length=512,
+                top_k=None,      # return all labels
+            )
+            _cached_pipeline = (clf, None)
+        except Exception as e:
+            err = str(e)
+            # Provide a clean, actionable message instead of a raw traceback
+            if "PermissionError" in err or "permission" in err.lower():
+                err = (
+                    f"Cache directory permission denied while loading {MODEL_ID}. "
+                    "The container cache dir (/app/.cache) must be owned by UID 1000. "
+                    "Rebuild the Docker image with the updated Dockerfile."
+                )
+            _cached_pipeline = (None, err)
+
+    return _cached_pipeline
 
 
 def classify_job_roberta(job_text: str, threshold: Optional[float] = None) -> dict:
@@ -50,7 +88,7 @@ def classify_job_roberta(job_text: str, threshold: Optional[float] = None) -> di
 
     clf, load_err = _load_pipeline()
     if clf is None:
-        return {"ok": False, "error": f"Model failed to load: {load_err}"}
+        return {"ok": False, "error": load_err}
 
     try:
         # Truncate to avoid token length issues (rough word-level limit)

@@ -59,3 +59,85 @@
 .ul { padding-left: 20px; margin: 6px 0; display: flex; flex-direction: column; gap: 4px; }
 .li { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 .strong { color: var(--text-primary); font-weight: 600; }
+.reportLink { color: var(--accent-light); text-decoration: underline; }
+.reportLink:hover { color: var(--accent); }
+
+/* Social profiles + recent posts in report */
+.socialSection, .postsSection {
+  padding: 0 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+.socialTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.socialLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.socialChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--accent-light);
+  text-decoration: none;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.socialChip:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.postsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.postCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: var(--transition);
+}
+.postCard:hover { border-color: var(--accent); }
+
+.postPlatform {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.postTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-light);
+}
+
+.postSnippet {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}

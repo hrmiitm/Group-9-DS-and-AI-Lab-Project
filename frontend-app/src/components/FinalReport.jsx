@@ -11,7 +11,17 @@ const VERDICT_CONFIG = {
   LIKELY_FAKE: { icon: '❌', label: 'Likely Fake', cls: styles.fake,        badge: 'badge-fake' },
 }
 
-export default function FinalReport({ verdict, report, isLoading }) {
+const PLATFORM_ICONS = {
+  linkedin:  '💼',
+  twitter_x: '🐦',
+  facebook:  '📘',
+  instagram: '📷',
+  github:    '🐙',
+  youtube:   '▶️',
+  glassdoor: '🪟',
+}
+
+export default function FinalReport({ verdict, report, isLoading, socialLinks = null, recentPosts = null }) {
   if (!verdict && !isLoading) return null
 
   const cfg = VERDICT_CONFIG[verdict] || VERDICT_CONFIG['SUSPICIOUS']
@@ -58,10 +68,63 @@ export default function FinalReport({ verdict, report, isLoading }) {
                   li: ({children}) => <li className={styles.li}>{children}</li>,
                   strong: ({children}) => <strong className={styles.strong}>{children}</strong>,
                   hr: () => <hr />,
+                  a: ({href, children}) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className={styles.reportLink}>
+                      {children}
+                    </a>
+                  ),
                 }}
               >
                 {strippedReport}
               </ReactMarkdown>
+            </div>
+          )}
+
+          {/* Social media profiles discovered during deep research */}
+          {socialLinks && Object.keys(socialLinks).length > 0 && (
+            <div className={styles.socialSection}>
+              <div className={styles.socialTitle}>🔗 Verified Social Profiles</div>
+              <div className={styles.socialLinks}>
+                {Object.entries(socialLinks).map(([platform, url]) =>
+                  url ? (
+                    <a
+                      key={platform}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.socialChip}
+                    >
+                      {PLATFORM_ICONS[platform] || '🔗'} {platform.replace('_', '/')}
+                    </a>
+                  ) : null
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Recent posts / mentions to review */}
+          {recentPosts?.length > 0 && (
+            <div className={styles.postsSection}>
+              <div className={styles.socialTitle}>📰 Recent Posts &amp; Mentions to Review</div>
+              <div className={styles.postsList}>
+                {recentPosts.map((post, i) => (
+                  <a
+                    key={i}
+                    href={post.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.postCard}
+                  >
+                    <span className={styles.postPlatform}>
+                      {PLATFORM_ICONS[post.platform] || '🔗'} {post.platform}
+                    </span>
+                    <span className={styles.postTitle}>{post.title}</span>
+                    {post.snippet && (
+                      <span className={styles.postSnippet}>{post.snippet.slice(0, 150)}…</span>
+                    )}
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </>

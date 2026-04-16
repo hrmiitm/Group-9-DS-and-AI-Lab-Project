@@ -73,7 +73,7 @@ export async function llmToolInference(baseUrl, toolName, toolLabel, toolResult,
 }
 
 // ── LLM: Final Summary ─────────────────────────────────────────
-export async function llmFinalSummary(baseUrl, jobDict, toolResults, toolInferences, llmConfig = null) {
+export async function llmFinalSummary(baseUrl, jobDict, toolResults, toolInferences, llmConfig = null, socialLinks = null, recentPosts = null) {
   return apiFetch(`${baseUrl}/api/v1/llm/final-summary`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -81,6 +81,8 @@ export async function llmFinalSummary(baseUrl, jobDict, toolResults, toolInferen
       job_dict:        jobDict,
       tool_results:    toolResults,
       tool_inferences: toolInferences,
+      social_links:    socialLinks,
+      recent_posts:    recentPosts,
       llm_config:      llmConfig,
     }),
   }, 120000)

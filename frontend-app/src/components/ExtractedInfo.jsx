@@ -5,6 +5,18 @@
  */
 import styles from './ExtractedInfo.module.css'
 
+const PLATFORM_ICONS = {
+  linkedin:  '💼',
+  twitter_x: '🐦',
+  facebook:  '📘',
+  instagram: '📷',
+  github:    '🐙',
+  youtube:   '▶️',
+  glassdoor: '🪟',
+  news_posts:'📰',
+  web:       '🔗',
+}
+
 const FIELD_LABELS = {
   title:              'Job Title',
   company_name:       'Company',
@@ -74,6 +86,55 @@ export default function ExtractedInfo({ jobDict, deepResearch }) {
           {deepResearch.data.summary && (
             <p className={styles.researchSummary}>{deepResearch.data.summary}</p>
           )}
+
+          {/* Social Media Links */}
+          {deepResearch.data.social_links && Object.keys(deepResearch.data.social_links).length > 0 && (
+            <div className={styles.socialSection}>
+              <div className={styles.socialTitle}>Social Media Profiles</div>
+              <div className={styles.socialLinks}>
+                {Object.entries(deepResearch.data.social_links).map(([platform, url]) => (
+                  url ? (
+                    <a
+                      key={platform}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.socialLink}
+                    >
+                      {PLATFORM_ICONS[platform] || '🔗'} {platform.replace('_', '/')}
+                    </a>
+                  ) : null
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Posts / Mentions */}
+          {deepResearch.data.recent_posts?.length > 0 && (
+            <div className={styles.postsSection}>
+              <div className={styles.socialTitle}>Recent Posts &amp; Mentions</div>
+              <div className={styles.postsList}>
+                {deepResearch.data.recent_posts.map((post, i) => (
+                  <a
+                    key={i}
+                    href={post.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.postItem}
+                  >
+                    <span className={styles.postPlatform}>
+                      {PLATFORM_ICONS[post.platform] || '🔗'} {post.platform}
+                    </span>
+                    <span className={styles.postTitle}>{post.title}</span>
+                    {post.snippet && (
+                      <span className={styles.postSnippet}>{post.snippet.slice(0, 120)}…</span>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {deepResearch.data.sources?.length > 0 && (
             <div className={styles.sources}>
               {deepResearch.data.sources.slice(0, 3).map((src, i) => (

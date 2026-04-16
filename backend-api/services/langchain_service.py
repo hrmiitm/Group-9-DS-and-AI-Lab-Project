@@ -97,7 +97,7 @@ You will be given:
   - A partial job posting (some fields may be null/missing)
   - DuckDuckGo search snippets gathered about the company
 
-Your task: extract any missing contact/website fields from the search results.
+Your task: extract any missing contact/website fields AND social media profile links from the search results.
 Return ONLY valid JSON — no markdown, no explanation.
 
 Return:
@@ -106,8 +106,30 @@ Return:
   "contact_email":    string | null,   // official HR / careers email if found
   "contact_phone":    string | null,   // official phone if found
   "summary":          string,          // 1-2 sentence summary of what you found
-  "sources":          [string]         // list of URLs you drew info from
+  "sources":          [string],        // list of URLs you drew info from
+  "social_links": {
+    "linkedin":   string | null,       // LinkedIn company page URL
+    "twitter_x":  string | null,       // Twitter/X profile URL
+    "facebook":   string | null,       // Facebook page URL
+    "instagram":  string | null,       // Instagram profile URL
+    "github":     string | null,       // GitHub org URL
+    "youtube":    string | null,       // YouTube channel URL
+    "glassdoor":  string | null        // Glassdoor company page URL
+  },
+  "recent_posts": [                    // up to 5 notable recent posts/tweets/mentions
+    {"platform": string, "title": string, "url": string, "snippet": string}
+  ]
 }"""
+
+_SOCIAL_SEARCH_QUERIES = [
+    ('linkedin',   'site:linkedin.com/company "{}"'),
+    ('twitter_x',  'site:twitter.com "{}" OR site:x.com "{}"'),
+    ('glassdoor',  'site:glassdoor.com "{}"'),
+    ('facebook',   'site:facebook.com "{}"'),
+    ('instagram',  'site:instagram.com "{}"'),
+    ('github',     'site:github.com "{}"'),
+    ('news_posts', '"{}" latest news review employees 2024 2025'),
+]
 
 
 async def deep_research(
@@ -116,9 +138,9 @@ async def deep_research(
     llm_config: Optional[LLMConfig] = None,
 ) -> dict:
     """
-    DuckDuckGo search + LLM to recover missing email/phone/website.
+    DuckDuckGo search + LLM to recover missing email/phone/website + social media links.
 
-    Returns: {"ok": bool, "data": {candidates, applied_overrides, summary, sources}}
+    Returns: {"ok": bool, "data": {candidates, applied_overrides, summary, sources, social_links, recent_posts}}
     """
     company = job_dict.get("company_name") or ""
     title   = job_dict.get("title") or ""
@@ -127,34 +149,59 @@ async def deep_research(
         if not job_dict.get(f)
     ]
 
-    if not missing:
-        return {"ok": True, "data": {"missing_from_jd": [], "applied_overrides": {}, "summary": "All fields already present", "sources": []}}
-
-    # Run DuckDuckGo searches
+    # Run DuckDuckGo searches — always run (for social media too, even if no missing fields)
     snippets: list[dict] = []
-    queries = [
-        f'"{company}" official website careers',
-        f'"{company}" HR email contact',
-        f'"{company}" {title} job application',
-    ] if company else [f'"{title}" job company website email']
+    contact_queries = (
+        [
+            f'"{company}" official website careers',
+            f'"{company}" HR email contact',
+        ] if company else [f'"{title}" job company website email']
+    )
 
     try:
         with DDGS() as ddgs:
-            for q in queries:
+            # Contact/website queries
+            for q in contact_queries:
                 try:
-                    results = ddgs.text(q, max_results=5)
+                    results = ddgs.text(q, max_results=4)
                     for r in (results or []):
-                        snippets.append({"query": q, "title": r.get("title"), "url": r.get("href"), "snippet": r.get("body")})
+                        snippets.append({
+                            "query": q, "platform": "web",
+                            "title": r.get("title"), "url": r.get("href"), "snippet": r.get("body"),
+                        })
                     time.sleep(0.3)
                 except Exception:
                     pass
+
+            # Social media queries
+            if company:
+                for platform, tmpl in _SOCIAL_SEARCH_QUERIES:
+                    try:
+                        q = tmpl.format(company, company) if '{}' in tmpl and tmpl.count('{}') == 2 else tmpl.format(company)
+                        results = ddgs.text(q, max_results=3)
+                        for r in (results or []):
+                            snippets.append({
+                                "query": q, "platform": platform,
+                                "title": r.get("title"), "url": r.get("href"), "snippet": r.get("body"),
+                            })
+                        time.sleep(0.3)
+                    except Exception:
+                        pass
     except Exception:
         pass
 
     snippets_text = "\n".join(
-        f"[{s['url']}] {s['title']}: {s['snippet']}"
-        for s in snippets[:20]
+        f"[{s.get('platform','web')}][{s['url']}] {s['title']}: {s['snippet']}"
+        for s in snippets[:30]
+        if s.get('url')
     )
+
+    if not missing and not company:
+        return {"ok": True, "data": {
+            "missing_from_jd": [], "applied_overrides": {}, "search_count": 0,
+            "summary": "All fields already present", "sources": [],
+            "social_links": {}, "recent_posts": [],
+        }}
 
     llm = resolve_llm(llm_config)
     messages = [
@@ -162,7 +209,7 @@ async def deep_research(
         HumanMessage(content=(
             f"Job posting fields:\n{json.dumps(job_dict, indent=2)[:2000]}\n\n"
             f"Missing fields: {missing}\n\n"
-            f"Search results:\n{snippets_text[:4000]}"
+            f"Search results:\n{snippets_text[:5000]}"
         )),
     ]
 
@@ -180,6 +227,20 @@ async def deep_research(
             if enriched.get(field):
                 applied[field] = enriched[field]
 
+        # Clean social links — remove nulls and non-URL values
+        raw_social = enriched.get("social_links") or {}
+        social_links = {
+            k: v for k, v in raw_social.items()
+            if v and isinstance(v, str) and v.startswith("http")
+        }
+
+        # recent_posts — validate shape
+        raw_posts = enriched.get("recent_posts") or []
+        recent_posts = [
+            p for p in raw_posts
+            if isinstance(p, dict) and p.get("url") and p.get("title")
+        ][:5]
+
         return {
             "ok": True,
             "data": {
@@ -188,6 +249,8 @@ async def deep_research(
                 "applied_overrides": applied,
                 "summary":           enriched.get("summary", ""),
                 "sources":           enriched.get("sources", []),
+                "social_links":      social_links,
+                "recent_posts":      recent_posts,
                 "candidates": {
                     "websites": [enriched.get("company_website")] if enriched.get("company_website") else [],
                     "emails":   [enriched.get("contact_email")]   if enriched.get("contact_email")   else [],
@@ -290,6 +353,8 @@ async def final_summary(
     tool_results: dict[str, dict],
     tool_inferences: dict[str, str],
     web_search_snippets: Optional[list[dict]] = None,
+    social_links: Optional[dict] = None,
+    recent_posts: Optional[list[dict]] = None,
     llm_config: Optional[LLMConfig] = None,
 ) -> dict:
     """
@@ -309,13 +374,28 @@ async def final_summary(
             for s in web_search_snippets[:10]
         )
 
+    social_text = ""
+    if social_links:
+        links_list = "\n".join(f"  - {k}: {v}" for k, v in social_links.items() if v)
+        if links_list:
+            social_text = f"\nSocial Media Profiles Found:\n{links_list}"
+
+    posts_text = ""
+    if recent_posts:
+        posts_list = "\n".join(
+            f"  - [{p.get('platform','web')}] {p.get('title','')}: {p.get('url','')}"
+            for p in recent_posts[:5]
+        )
+        if posts_list:
+            posts_text = f"\nRecent Posts / Mentions:\n{posts_list}"
+
     llm = resolve_llm(llm_config)
     messages = [
         SystemMessage(content=_FINAL_SUMMARY_SYSTEM),
         HumanMessage(content=(
             f"Job Posting:\n{json.dumps(job_dict, indent=2)[:1500]}\n\n"
             f"Tool Inferences:\n{inferences_text[:4000]}\n"
-            f"{web_text}"
+            f"{web_text}{social_text}{posts_text}"
         )),
     ]
 

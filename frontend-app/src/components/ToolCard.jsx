@@ -34,7 +34,7 @@ function BulletList({ bullets }) {
   )
 }
 
-export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
+export default function ToolCard({ toolName, meta, initialParams, jobDict, pipelineResult = null, pipelineInference = null }) {
   const { settings, getLLMConfig } = useSettings()
   const [params,    setParams]    = useState({ ...initialParams })
   const [status,    setStatus]    = useState('idle')  // idle|loading|done|error
@@ -45,9 +45,21 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
   const [error,     setError]     = useState(null)
   const [copied,    setCopied]    = useState(false)
 
+  // Show pipeline result if card hasn't been run manually
+  const displayResult    = result    ?? pipelineResult
+  const displayInference = inference ?? (
+    pipelineInference
+      ? { ok: true, bullets: pipelineInference.split('\n').map(b => b.replace(/^•\s*/, '').trim()).filter(Boolean) }
+      : null
+  )
+  const displayStatus = status !== 'idle' ? status
+    : pipelineResult?.ok === true  ? 'done'
+    : pipelineResult?.ok === false ? 'error'
+    : 'idle'
+
   const handleCopy = () => {
-    if (!result) return
-    navigator.clipboard.writeText(JSON.stringify(result, null, 2))
+    if (!displayResult) return
+    navigator.clipboard.writeText(JSON.stringify(displayResult, null, 2))
       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) })
       .catch(() => {})
   }
@@ -89,12 +101,12 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
     setInfLoading(false)
   }
 
-  const riskLevel = result?.result?.data?.risk_level
+  const riskLevel = displayResult?.result?.data?.risk_level || displayResult?.data?.risk_level
   const isStub    = meta.is_stub
   const canRun    = !isStub
 
   return (
-    <div className={`${styles.card} ${status === 'done' ? styles.cardDone : status === 'error' ? styles.cardError : ''} fade-in`}>
+    <div className={`${styles.card} ${displayStatus === 'done' ? styles.cardDone : displayStatus === 'error' ? styles.cardError : ''} fade-in`}>
       {/* ── Header ── */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
@@ -105,11 +117,11 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
           </div>
         </div>
         <div className={styles.headerRight}>
-          {status !== 'idle' && (
-            <span className={`${styles.statusDot} ${STATUS_COLORS[status]}`}>
-              {status === 'loading' ? <span className="spinner" /> :
-               status === 'done'    ? '✓' :
-               status === 'error'   ? '✗' : ''}
+          {displayStatus !== 'idle' && (
+            <span className={`${styles.statusDot} ${STATUS_COLORS[displayStatus]}`}>
+              {displayStatus === 'loading' ? <span className="spinner" /> :
+               displayStatus === 'done'    ? '✓' :
+               displayStatus === 'error'   ? '✗' : ''}
             </span>
           )}
           {riskLevel && <RiskBadge value={riskLevel} />}
@@ -168,26 +180,29 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
       )}
 
       {/* ── LLM Inference bullets ── */}
-      {(infLoading || inference) && (
+      {(infLoading || displayInference) && (
         <div className={styles.inferenceBox}>
           <div className={styles.inferenceHeader}>
             <span>🧠 Analysis</span>
             {infLoading && <span className="spinner" />}
+            {!infLoading && pipelineInference && !inference && (
+              <span className={styles.pipelineTag}>auto</span>
+            )}
           </div>
-          {inference?.bullets?.length > 0 && (
-            <BulletList bullets={inference.bullets} />
+          {displayInference?.bullets?.length > 0 && (
+            <BulletList bullets={displayInference.bullets} />
           )}
-          {inference?.ok && !inference?.bullets?.length && inference?.inference && (
-            <p className={styles.infFallback}>{inference.inference}</p>
+          {displayInference?.ok && !displayInference?.bullets?.length && displayInference?.inference && (
+            <p className={styles.infFallback}>{displayInference.inference}</p>
           )}
-          {inference?.ok === false && (
+          {displayInference?.ok === false && (
             <p className={styles.infError}>LLM inference unavailable</p>
           )}
         </div>
       )}
 
       {/* ── Raw result ── */}
-      {result && (
+      {displayResult && (
         <div className={styles.rawSection}>
           <div className={styles.rawActions}>
             <button
@@ -205,7 +220,7 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
             </button>
           </div>
           {showRaw && (
-            <pre className="code-block">{JSON.stringify(result, null, 2)}</pre>
+            <pre className="code-block">{JSON.stringify(displayResult, null, 2)}</pre>
           )}
         </div>
       )}

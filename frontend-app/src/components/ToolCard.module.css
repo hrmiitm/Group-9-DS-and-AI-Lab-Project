@@ -111,6 +111,11 @@
 
 .infError    { font-size: 12px; color: var(--text-muted); font-style: italic; }
 .infFallback { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.pipelineTag {
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  background: var(--accent-glow); color: var(--accent-light);
+  padding: 2px 6px; border-radius: 4px;
+}
 
 .rawSection { display: flex; flex-direction: column; gap: 6px; }
 .rawToggle  { align-self: flex-start; }

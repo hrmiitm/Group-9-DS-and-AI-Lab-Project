@@ -8,11 +8,30 @@ Risk thresholds:
   180-730 days    → MEDIUM
   > 730 days      → LOW    (established domain)
 """
+import concurrent.futures
 import requests
 import whois
 from datetime import datetime, timezone
 
 from tools.tools_config import REQUEST_HEADERS, REQUEST_TIMEOUT
+
+# Free email / major consumer domains — WHOIS often rate-limits or blocks.
+# Their age is always "low risk" (decades old), so skip the expensive lookup.
+_KNOWN_FREE_EMAIL_DOMAINS = frozenset({
+    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
+    "icloud.com", "me.com", "mac.com", "aol.com", "protonmail.com",
+    "proton.me", "zoho.com", "yandex.com", "mail.com", "gmx.com",
+    "tutanota.com", "fastmail.com", "rediffmail.com",
+})
+
+# Domains that block HTTP probes (Cloudflare 403, etc.) — skip liveness check
+_SKIP_LIVENESS = frozenset({
+    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
+    "microsoft.com", "google.com", "apple.com",
+})
+
+_WHOIS_TIMEOUT = 15   # seconds for the blocking whois call
+_HTTP_TIMEOUT  = 8    # seconds for the liveness HTTP check
 
 
 def _pick(val):
@@ -45,6 +64,13 @@ def _bare_domain(value: str) -> str:
     return v[4:] if v.startswith("www.") else v
 
 
+def _whois_with_timeout(domain: str, timeout: int):
+    """Run whois.whois() in a thread so we can enforce a hard timeout."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+        future = ex.submit(whois.whois, domain)
+        return future.result(timeout=timeout)
+
+
 def check_domain_reputation(domain_or_email: str) -> dict:
     """
     WHOIS lookup for a domain, email address, or URL.
@@ -62,8 +88,29 @@ def check_domain_reputation(domain_or_email: str) -> dict:
     else:
         domain = _bare_domain(raw)
 
+    # Fast-path: well-known free email providers are always old and trusted
+    if domain in _KNOWN_FREE_EMAIL_DOMAINS:
+        return {
+            "ok": True,
+            "data": {
+                "domain":          domain,
+                "registrar":       "Major provider (well-known)",
+                "creation_date":   None,
+                "expiration_date": None,
+                "updated_date":    None,
+                "domain_age_days": None,
+                "is_live":         True,
+                "live_url":        f"https://{domain}",
+                "risk_level":      "low",
+                "note":            (
+                    "Free/major email provider. Using a free email for hiring "
+                    "is a weak fraud signal — check other indicators."
+                ),
+            },
+        }
+
     try:
-        w = whois.whois(domain)
+        w = _whois_with_timeout(domain, _WHOIS_TIMEOUT)
         created = _pick(getattr(w, "creation_date", None))
         expires = _pick(getattr(w, "expiration_date", None))
         updated = _pick(getattr(w, "updated_date", None))
@@ -71,17 +118,18 @@ def check_domain_reputation(domain_or_email: str) -> dict:
 
         is_live  = False
         live_url = None
-        try:
-            r = requests.get(
-                f"https://{domain}",
-                headers=REQUEST_HEADERS,
-                timeout=10,
-                allow_redirects=True,
-            )
-            is_live  = r.status_code < 500
-            live_url = r.url
-        except Exception:
-            pass
+        if domain not in _SKIP_LIVENESS:
+            try:
+                r = requests.get(
+                    f"https://{domain}",
+                    headers=REQUEST_HEADERS,
+                    timeout=_HTTP_TIMEOUT,
+                    allow_redirects=True,
+                )
+                is_live  = r.status_code < 500
+                live_url = r.url
+            except Exception:
+                pass
 
         risk = (
             "high"   if age is not None and age < 180  else
@@ -102,6 +150,13 @@ def check_domain_reputation(domain_or_email: str) -> dict:
                 "live_url":        live_url,
                 "risk_level":      risk,
             },
+        }
+    except concurrent.futures.TimeoutError:
+        return {
+            "ok": False,
+            "error": f"WHOIS lookup timed out after {_WHOIS_TIMEOUT}s for '{domain}'. "
+                     "The domain may be blocking WHOIS queries or the registrar is slow.",
+            "data": {"domain": domain},
         }
     except Exception as e:
         return {"ok": False, "error": str(e), "data": {"domain": domain}}

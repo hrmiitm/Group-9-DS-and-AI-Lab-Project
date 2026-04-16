@@ -40,9 +40,10 @@ COPY requirements.txt .
 
 # Install PyTorch CPU-only wheel explicitly before the rest of requirements
 # to avoid pulling in CUDA variants (~3 GB) that are unnecessary on free Spaces.
+# torch 2.5.1+cpu is the latest stable CPU build; transformers>=4.47 requires >=2.4.
 RUN pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir \
-        torch==2.2.2+cpu \
+        torch==2.5.1+cpu \
         --index-url https://download.pytorch.org/whl/cpu \
  && pip install --no-cache-dir -r requirements.txt
 
@@ -70,6 +71,12 @@ WORKDIR /app
 # Copy application source code
 COPY --chown=appuser:appuser . .
 
+# Create the HuggingFace model cache directory and give appuser (UID 1000) full
+# ownership BEFORE switching to that user — otherwise the transformers library
+# raises PermissionError when it tries to download the RoBERTa model at runtime.
+RUN mkdir -p /app/.cache/huggingface/transformers \
+    && chown -R appuser:appuser /app/.cache
+
 # Switch to non-root user
 USER appuser
 
@@ -81,10 +88,11 @@ EXPOSE 7860
 ENV PORT=7860 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    # Pre-download Transformers cache to /app/.cache so it survives across
-    # container restarts when a persistent storage volume is mounted.
+    # Point transformers cache to /app/.cache so UID 1000 can always write to it.
     HF_HOME=/app/.cache/huggingface \
-    TRANSFORMERS_CACHE=/app/.cache/huggingface/transformers
+    TRANSFORMERS_CACHE=/app/.cache/huggingface/transformers \
+    # Prevent tokenizers from spawning extra threads (safe on single-worker uvicorn)
+    TOKENIZERS_PARALLELISM=false
 
 # ── Health check ──────────────────────────────────────────────────────────────
 # Docker / HF Spaces uses this to determine when the container is healthy.
