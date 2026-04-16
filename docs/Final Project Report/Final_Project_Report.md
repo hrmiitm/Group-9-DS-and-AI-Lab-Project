@@ -9,7 +9,7 @@
 | **Project Title** | FraudGuard: Fake Job Listing Detection using Deep Learning and Agentic Generative AI |
 | **Team** | Group 9 — Arun Dutta, Hritik Roshan Maurya, Vivek Bajaj, Vishwas Mehta |
 | **Course** | DS & AI Lab Project |
-| **Institution** | <!-- INSTITUTION NAME HERE --> |
+| **Institution** | Indian Institute of Technology Madras |
 | **Date** | April 2026 |
 | **Model** | [aditya963/fraud-job-classifier](https://huggingface.co/aditya963/fraud-job-classifier) on HuggingFace Hub |
 

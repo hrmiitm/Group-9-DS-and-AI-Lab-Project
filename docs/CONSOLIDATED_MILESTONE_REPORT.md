@@ -49,6 +49,63 @@ The system integrates three primary components:
 The system is deployed as:
 - A **Flask web application** (web-app/) accepting text, file uploads, or LinkedIn URLs
 - A **FastAPI model inference service** (model-api/) deployed on HuggingFace Spaces
+
+### System Architecture Overview
+
+```mermaid
+graph TB
+    subgraph INPUT["Input Layer"]
+        A1["📄 Raw Text"]
+        A2["📁 File Upload<br/>CSV / PDF / DOCX"]
+        A3["🔗 LinkedIn URL"]
+    end
+
+    subgraph WEBAPP["Flask Web Application  web-app/"]
+        B1["Job Extractor<br/>LLM → 16 structured fields"]
+        B2["Deep Research<br/>DuckDuckGo fill-in"]
+        B3["12-Tool Verification Pipeline<br/>email · domain · phone · company · website"]
+        B4["Per-Tool LLM Inference<br/>2–4 sentence summaries × 12"]
+        B5["Final Report Generator<br/>SAFE / SUSPICIOUS / LIKELY_FAKE"]
+    end
+
+    subgraph MODEL["RoBERTa Classifier  model-api/"]
+        C1["BPE Tokenizer<br/>max_length=512"]
+        C2["RoBERTa-base<br/>12 layers · 768 dim · 125M params"]
+        C3["CLS → Linear 768→2 → Softmax"]
+        C4{"P fraud ≥ 0.87?"}
+        C5["FRAUDULENT"]
+        C6["LEGITIMATE"]
+    end
+
+    subgraph EXT["Chrome Extension  web-extension/"]
+        D1["LinkedIn DOM Scraper"]
+        D2["Gemini API Call"]
+        D3["Verdict Overlay UI"]
+    end
+
+    subgraph OUTPUT["Output Layer"]
+        E1["📊 Web Results Page<br/>JSON + HTML Report"]
+        E2["🔴🟡🟢 Browser Overlay<br/>Verdict + Confidence"]
+    end
+
+    A1 & A2 & A3 --> B1
+    B1 --> B2 --> B3 --> B4 --> B5
+    B1 -.->|"job text"| C1
+    C1 --> C2 --> C3 --> C4
+    C4 -->|"Yes"| C5
+    C4 -->|"No"| C6
+    C5 & C6 -.->|"score"| B5
+    B5 --> E1
+
+    A3 --> D1
+    D1 --> D2 --> D3 --> E2
+
+    style INPUT fill:#e8f4fd,stroke:#2196F3
+    style WEBAPP fill:#e8f5e9,stroke:#4CAF50
+    style MODEL fill:#fff3e0,stroke:#FF9800
+    style EXT fill:#fce4ec,stroke:#E91E63
+    style OUTPUT fill:#f3e5f5,stroke:#9C27B0
+```
 - A **Chrome MV3 extension** (web-extension/) providing real-time LinkedIn analysis via Gemini AI
 
 ---
@@ -176,6 +233,25 @@ A Generative AI component synthesizes model prediction scores, anomaly signals, 
 | Evidence Aggregation | Combines all evidence | Final fraud risk score |
 | Generative Explanation | Creates human-readable report | Structured explanation |
 | Final Fraud Report | Presents prediction + explanation | Final outcome |
+
+```mermaid
+flowchart TD
+    A(["Job Posting Input"]) --> B["Transformer Classifier<br/>P(fraud) ∈ [0,1]"]
+    A --> C["Agent Controller"]
+    C --> D["Anomaly Detection<br/>+ Verification Tools"]
+    D --> E["Evidence Aggregation"]
+    B --> E
+    E --> F["Generative Explanation<br/>LLM Narrative"]
+    F --> G(["Final Fraud Report<br/>SAFE / SUSPICIOUS / LIKELY_FAKE"])
+
+    style A fill:#e8f4fd,stroke:#2196F3
+    style B fill:#fff3e0,stroke:#FF9800
+    style C fill:#e8f5e9,stroke:#4CAF50
+    style D fill:#e8f5e9,stroke:#4CAF50
+    style E fill:#f3e5f5,stroke:#9C27B0
+    style F fill:#fce4ec,stroke:#E91E63
+    style G fill:#e8f4fd,stroke:#2196F3
+```
 
 ## M0.6 Expected Outcomes at Project Completion
 
@@ -353,6 +429,31 @@ Transformer models with bidirectional self-attention attend globally over all 51
 - Dynamic masking during training — more diverse training signal
 - Consistently outperforms BERT on GLUE and SuperGLUE benchmarks
 
+### Model Evolution Across Literature
+
+```mermaid
+timeline
+    title Fake Job Detection: F1 Score Progression
+    2017 : TF-IDF + Random Forest
+         : F1 ~ 0.82
+         : Vidros et al. EMSCAD baseline
+    2019 : BERT fine-tuned
+         : F1 ~ 0.88
+         : Mahfouz et al.
+    2020 : BiLSTM classifier
+         : F1 ~ 0.83
+         : Alghamdi et al.
+    2022 : SVM + feature engineering
+         : F1 ~ 0.86
+         : Amaar et al.
+    2022 : BERT + metadata
+         : F1 ~ 0.88
+         : Park & Kim
+    2026 : RoBERTa v3_1 + Focal Loss
+         : F1 = 0.9069  AUC = 0.993
+         : FraudGuard Group 9
+```
+
 ### M1.2.5 Explainability Approaches
 
 | Method | Strengths | Weaknesses |
@@ -379,34 +480,24 @@ Transformer models with bidirectional self-attention attend globally over all 51
 
 ### M1.4.1 Planned Component Architecture
 
-```
-Input Layer
-    ↓
-┌─────────────────────────────────────────────────┐
-│  Job Posting Normalization & Field Extraction   │
-│  (LLM-based: extracts 16 structured fields)     │
-└──────────────────────┬──────────────────────────┘
-                       ↓
-         ┌─────────────┴─────────────┐
-         ↓                           ↓
-┌────────────────┐         ┌──────────────────────┐
-│ RoBERTa-base   │         │ 12-Tool Evidence      │
-│ Classifier     │         │ Verification Pipeline │
-│ P(fraud) ∈[0,1]│         │ (async, parallel)     │
-└────────┬───────┘         └──────────┬────────────┘
-         │                            │
-         └──────────┬─────────────────┘
-                    ↓
-         ┌──────────────────────┐
-         │ Evidence Aggregation │
-         │ + LLM Synthesis      │
-         └──────────┬───────────┘
-                    ↓
-         ┌──────────────────────┐
-         │ Fraud Report Output  │
-         │ SAFE/SUSPICIOUS/     │
-         │ LIKELY_FAKE          │
-         └──────────────────────┘
+```mermaid
+flowchart TD
+    INPUT(["Input Layer<br/>Job Posting Data"]) --> EXTRACT["Job Posting Normalization<br/>& Field Extraction<br/>LLM-based: 16 structured fields"]
+
+    EXTRACT --> ROBERTA["RoBERTa-base Classifier<br/>P(fraud) ∈ [0,1]"]
+    EXTRACT --> TOOLS["12-Tool Evidence<br/>Verification Pipeline<br/>async, parallel"]
+
+    ROBERTA --> AGG["Evidence Aggregation<br/>+ LLM Synthesis"]
+    TOOLS --> AGG
+
+    AGG --> REPORT(["Fraud Report Output<br/>SAFE / SUSPICIOUS / LIKELY_FAKE"])
+
+    style INPUT fill:#e8f4fd,stroke:#2196F3
+    style EXTRACT fill:#e8f5e9,stroke:#4CAF50
+    style ROBERTA fill:#fff3e0,stroke:#FF9800
+    style TOOLS fill:#fff3e0,stroke:#FF9800
+    style AGG fill:#f3e5f5,stroke:#9C27B0
+    style REPORT fill:#e8f4fd,stroke:#2196F3
 ```
 
 ### M1.4.2 Stakeholder Analysis
@@ -462,6 +553,12 @@ The EMSCAD dataset was obtained from Kaggle (shivamb/real-or-fake-fake-jobpostin
 | Legitimate (0) | 17,014 | 95.16% |
 | Fraudulent (1) | 866 | 4.84% |
 | **Total** | **17,880** | **100%** |
+
+```mermaid
+pie title EMSCAD Dataset — Class Distribution (17,880 samples)
+    "Legitimate (95.16%)" : 17014
+    "Fraudulent (4.84%)" : 866
+```
 
 The class imbalance ratio is approximately **20:1**. A model that predicts "legitimate" for every sample achieves 95.16% accuracy but 0% fraud recall — making accuracy a misleading metric.
 
@@ -665,6 +762,49 @@ Softmax → [P(legitimate), P(fraudulent)]
 Threshold Comparison: P(fraud) ≥ 0.87 → FRAUDULENT
 ```
 
+```mermaid
+graph TB
+    INPUT["Token Sequence  [CLS] t₁ t₂ ... t₅₁₁ [SEP]<br/>input_ids [512]  +  attention_mask [512]"]
+
+    subgraph EMBED["Embedding Layer"]
+        E1[Token Embeddings<br/>vocab=50,265]
+        E2[Position Embeddings<br/>max=514]
+        E3[LayerNorm + Dropout 0.1]
+    end
+
+    subgraph ENC["RoBERTa Encoder  ×12 Transformer Layers"]
+        L1["Layer 1: Multi-Head Self-Attention<br/>12 heads · 64 dim each"]
+        L2["Layer 2: Feed-Forward<br/>768 → 3072 → 768"]
+        LN["..."]
+        L12["Layer 12: Multi-Head Self-Attention<br/>12 heads · 64 dim each"]
+    end
+
+    CLS["[CLS] token representation<br/>hidden state [768]"]
+
+    subgraph HEAD["Classification Head"]
+        D["Dropout  p=0.1"]
+        LIN["Linear  768 → 2"]
+        SM["Softmax"]
+    end
+
+    THRESH{"P(fraud) ≥ 0.87?"}
+    OUT1["FRAUDULENT 🔴"]
+    OUT2["LEGITIMATE 🟢"]
+
+    INPUT --> EMBED
+    EMBED --> ENC
+    ENC --> CLS --> HEAD
+    D --> LIN --> SM --> THRESH
+    THRESH -->|Yes| OUT1
+    THRESH -->|No| OUT2
+
+    style EMBED fill:#e8f4fd,stroke:#2196F3
+    style ENC fill:#e8f5e9,stroke:#4CAF50
+    style HEAD fill:#fff3e0,stroke:#FF9800
+    style OUT1 fill:#ffebee,stroke:#f44336
+    style OUT2 fill:#e8f5e9,stroke:#4CAF50
+```
+
 **Parameter count by layer:**
 
 | Layer | Parameters |
@@ -760,6 +900,45 @@ def build_input_text(row: pd.Series) -> str:
 
 **Ordering rationale:** Structured fields (short, high-information-density) are placed first, ensuring they are never truncated at the 512-token limit. Free-text fields (long, variable) follow; only the end of very long descriptions is truncated.
 
+### M3.2.1.1 Input Preprocessing Flow
+
+```mermaid
+flowchart TD
+    RAW["Raw CSV Row<br/>18 columns"]
+
+    subgraph STRUCT["Structured Fields (placed first — protected from truncation)"]
+        S1["Location: New York, NY"]
+        S2["Salary Range: 80000-100000"]
+        S3["Employment Type: Full-time"]
+        S4["Has Company Logo: 1"]
+        S5["... 7 more fields ..."]
+    end
+
+    subgraph FREE["Free-Text Fields (placed after — may be truncated)"]
+        F1["Job Title"]
+        F2["Company Profile"]
+        F3["Job Description"]
+        F4["Requirements"]
+        F5["Benefits"]
+    end
+
+    JOIN["Join with ' [SEP] ' separator<br/>↓<br/>Location: New York [SEP] Salary Range: 80000-100000 [SEP] ... [SEP] Title text [SEP] Description text..."]
+
+    TOKENIZE["BPE Tokenizer<br/>max_length=512 · truncation=True · padding=max_length"]
+
+    TOKENS["input_ids [512]  +  attention_mask [512]"]
+
+    RAW --> STRUCT
+    RAW --> FREE
+    STRUCT --> JOIN
+    FREE --> JOIN
+    JOIN --> TOKENIZE --> TOKENS
+
+    style STRUCT fill:#e8f4fd,stroke:#2196F3
+    style FREE fill:#e8f5e9,stroke:#4CAF50
+    style TOKENIZE fill:#fff3e0,stroke:#FF9800
+```
+
 **Step 4: Tokenization**
 
 ```python
@@ -819,6 +998,27 @@ Split sizes after deduplication (15,787 total):
 | Train | 11,051 | 535 | 4.84% |
 | Validation | 2,368 | 115 | 4.85% |
 | Test | 2,368 | 115 | 4.86% |
+
+```mermaid
+graph LR
+    DS[(EMSCAD<br/>17,880 samples)]
+    DD[(After Dedup<br/>15,787 samples)]
+
+    DS -->|Remove duplicate<br/>title+description| DD
+
+    DD -->|70% stratified| TR["Train Set<br/>11,051 samples<br/>535 fraud"]
+    DD -->|15% stratified| VA["Validation Set<br/>2,368 samples<br/>115 fraud"]
+    DD -->|15% stratified| TE["Test Set<br/>2,368 samples<br/>115 fraud"]
+
+    TR -->|Fine-tune| MODEL[RoBERTa v3_1]
+    VA -->|Threshold calibration<br/>+ HPO pruning| MODEL
+    TE -->|Final evaluation<br/>one-time only| METRICS[Metrics]
+
+    style TR fill:#e8f5e9,stroke:#4CAF50
+    style VA fill:#fff3e0,stroke:#FF9800
+    style TE fill:#fce4ec,stroke:#E91E63
+    style MODEL fill:#e8f4fd,stroke:#2196F3
+```
 
 ## M3.3 Focal Loss Implementation
 
@@ -976,6 +1176,15 @@ All training was conducted on **Google Colab with T4 GPU** (15GB VRAM). Experime
 | v4 (explored) | Focal | Optuna | DeBERTa-v3-base backbone | 0.924 | 0.915 |
 | v5_synth (explored) | Focal | Manual | LLM-synthetic fraud augmentation | 0.928 | 0.911 |
 
+```mermaid
+xychart-beta
+    title "F1 Score (Fraud Class) Across Model Versions"
+    x-axis ["v1 Weighted CE", "v2 Focal", "v2_1 LoRA", "v3 Optuna 15T", "v3_1 Final", "v4 DeBERTa", "v5 Synthetic"]
+    y-axis "F1 Score" 0.82 --> 0.94
+    bar [0.847, 0.874, 0.851, 0.901, 0.920, 0.924, 0.928]
+    line [0.847, 0.874, 0.851, 0.901, 0.920, 0.924, 0.928]
+```
+
 **v3_1 selected as final model** due to:
 - Published on HuggingFace under `aditya963/fraud-job-classifier` before v4/v5 completion
 - Reproducible on T4 GPU without memory issues
@@ -1004,6 +1213,27 @@ All training was conducted on **Google Colab with T4 GPU** (15GB VRAM). Experime
 | Focal Loss | 2.0 | auto | 0.883 | 0.869 | 0.898 | |
 | Focal Loss | 1.69 | 2.83 | **0.920** | **0.901** | **0.940** | **Optuna best** |
 | Focal Loss | 3.0 | auto | 0.876 | 0.883 | 0.869 | Over-focuses; precision drops |
+
+```mermaid
+graph LR
+    subgraph CE["Standard Cross-Entropy on 20:1 imbalance"]
+        CE1["869 fraud examples<br/>17,011 legit examples"]
+        CE2["Model predicts LEGIT for everything"]
+        CE3["Accuracy = 95%  ✓<br/>Fraud Recall = 0%  ✗"]
+    end
+
+    subgraph FL["Focal Loss  γ=1.69  weight=2.83"]
+        FL1["Easy legit examples<br/>get down-weighted: (1-pₜ)^γ → ~0"]
+        FL2["Hard fraud examples<br/>receive amplified gradient signal"]
+        FL3["Recall = 86.15%  ✓<br/>Precision = 95.73%  ✓"]
+    end
+
+    CE1 --> CE2 --> CE3
+    FL1 --> FL2 --> FL3
+
+    style CE fill:#ffebee,stroke:#f44336
+    style FL fill:#e8f5e9,stroke:#4CAF50
+```
 
 ### M4.3.4 Ablation Study — Learning Rate
 
@@ -1073,6 +1303,36 @@ best_config = {
 }
 ```
 
+```mermaid
+flowchart TD
+    START([Start HPO Study<br/>25 Bayesian trials])
+
+    SAMPLE["Optuna samples hyperparameters<br/>lr · warmup · batch · wd · γ · class_weight · epochs"]
+
+    TRAIN["Fine-tune RoBERTa<br/>on train set<br/>with sampled config"]
+
+    EVAL["Evaluate on validation set<br/>Precision · Recall · F1"]
+
+    FLOOR{Recall ≥ 0.89<br/>AND<br/>Precision ≥ 0.93?}
+
+    PRUNE["❌ Prune trial<br/>objective = 0"]
+    RECORD["✅ Record F1 score<br/>Update Bayesian model"]
+
+    BEST{25 trials<br/>complete?}
+
+    FINAL["Best config selected<br/>lr=2.59e-5 · γ=1.692 · weight=2.83<br/>F1=0.920 @ threshold=0.87"]
+
+    START --> SAMPLE --> TRAIN --> EVAL --> FLOOR
+    FLOOR -->|No| PRUNE --> BEST
+    FLOOR -->|Yes| RECORD --> BEST
+    BEST -->|No| SAMPLE
+    BEST -->|Yes| FINAL
+
+    style PRUNE fill:#ffebee,stroke:#f44336
+    style RECORD fill:#e8f5e9,stroke:#4CAF50
+    style FINAL fill:#e8f4fd,stroke:#2196F3
+```
+
 ## M4.5 Training Curves and Analysis
 
 ### M4.5.1 Training Loss by Epoch (v3_1)
@@ -1111,6 +1371,14 @@ The decision threshold calibration was performed on the validation set:
 
 **Threshold 0.87 selected** as the optimal operating point, maximizing F1 while maintaining Precision ≥ 0.93.
 
+```mermaid
+xychart-beta
+    title "Threshold Calibration — F1 vs. Threshold (validation set)"
+    x-axis ["0.50", "0.60", "0.70", "0.75", "0.80", "0.85", "0.87", "0.90", "0.95"]
+    y-axis "F1 Score (fraud class)" 0.85 --> 0.93
+    line [0.878, 0.894, 0.906, 0.912, 0.917, 0.919, 0.920, 0.916, 0.898]
+```
+
 ## M4.6 Regularization Study
 
 | Regularization | Setting | Effect on Val F1 |
@@ -1140,6 +1408,17 @@ The decision threshold calibration was performed on the validation set:
 | **MCC** | Reported | **0.8917** | — | Reported |
 | **Accuracy** | Reported | **0.9891** | — | Reported |
 
+```mermaid
+xychart-beta
+    title "FraudGuard v3_1 — Key Metrics vs. Targets"
+    x-axis ["F1", "Recall", "Precision", "ROC-AUC", "MCC"]
+    y-axis "Score" 0.80 --> 1.00
+    bar [0.9069, 0.8615, 0.9573, 0.9930, 0.8917]
+    line [0.91, 0.89, 0.93, 0.95, 0.89]
+```
+
+*Bars = achieved. Line = targets.*
+
 ### M5.1.2 Confusion Matrix (Test Set, threshold=0.87)
 
 |  | Predicted: Legitimate | Predicted: Fraudulent |
@@ -1152,6 +1431,21 @@ False Negatives: 16 (fraudulent missed — these are the dangerous misses)
 False Positives: 5 (legitimate falsely accused)
 True Negatives: 2,548 (legitimate correctly cleared)
 
+```mermaid
+quadrantChart
+    title Confusion Matrix — Test Set (2,668 samples · threshold=0.87)
+    x-axis "Predicted: LEGITIMATE" --> "Predicted: FRAUDULENT"
+    y-axis "Actual: FRAUDULENT" --> "Actual: LEGITIMATE"
+    quadrant-1 False Positives
+    quadrant-2 True Positives
+    quadrant-3 False Negatives
+    quadrant-4 True Negatives
+    True Positives: [0.85, 0.75]
+    False Negatives: [0.15, 0.75]
+    False Positives: [0.85, 0.25]
+    True Negatives: [0.15, 0.25]
+```
+
 ### M5.1.3 Comparative Analysis
 
 | Model | F1 (Fraud) | Recall | Precision | ROC-AUC | Params |
@@ -1163,6 +1457,14 @@ True Negatives: 2,548 (legitimate correctly cleared)
 | RoBERTa v1 (Weighted CE) | 0.8745 | 0.8300 | 0.9200 | 0.9874 | 125M |
 | RoBERTa v2 (Focal γ=2.0) | 0.8815 | 0.8425 | 0.9241 | 0.9897 | 125M |
 | **RoBERTa v3_1 (FINAL)** | **0.9069** | **0.8615** | **0.9573** | **0.9930** | 125M |
+
+```mermaid
+xychart-beta
+    title "F1 Score Comparison — All Models (fraud class)"
+    x-axis ["LR", "RF", "BiLSTM", "BERT", "RoBERTa v1", "RoBERTa v2", "RoBERTa v3_1"]
+    y-axis "F1 Score" 0.70 --> 0.95
+    bar [0.73, 0.82, 0.86, 0.88, 0.8745, 0.8815, 0.9069]
+```
 
 ### M5.1.4 Per-Class Metrics
 
@@ -1284,17 +1586,26 @@ These are known limitations of current text classifiers and are active areas of 
 
 ## M6.1 Deployment Architecture
 
-```
-User
- ├─→ Flask Web Application (web-app/, localhost:5000)
- │     └─→ 12-Tool Agent Pipeline (LangChain + OpenRouter GPT-4o-mini)
- │           └─→ Model API (HuggingFace Spaces)
- │                 └─→ aditya963/fraud-job-classifier
- │
- └─→ Chrome Extension (web-extension/)
-       ├─→ LinkedIn DOM Scraper
-       ├─→ Gemini API
-       └─→ HuggingFace Inference API (RoBERTa)
+```mermaid
+flowchart TB
+  U[User] --> WA["Flask Web App<br/>localhost:5000"]
+  U --> CE["Chrome Extension<br/>LinkedIn Job Page"]
+
+  WA --> AG["12-Tool Agent<br/>LangChain + OpenRouter"]
+  AG --> API["Model API<br/>HuggingFace Spaces"]
+  API --> HF[(aditya963/fraud-job-classifier)]
+
+  CE --> GEM[Gemini API]
+  CE --> OV[Inline Verdict Overlay]
+
+  style U fill:#e8f4fd,stroke:#2196F3
+  style WA fill:#e8f4fd,stroke:#2196F3
+  style CE fill:#fce4ec,stroke:#E91E63
+  style AG fill:#fff3e0,stroke:#FF9800
+  style API fill:#fff3e0,stroke:#FF9800
+  style GEM fill:#fff3e0,stroke:#FF9800
+  style HF fill:#e8f5e9,stroke:#4CAF50
+  style OV fill:#fce4ec,stroke:#E91E63
 ```
 
 ## M6.2 Component Deployment Details
@@ -1459,22 +1770,35 @@ uvicorn app:app --host 0.0.0.0 --port 7860 --reload
 
 **Extension Analysis Flow:**
 
-```
-User visits LinkedIn job posting
-    ↓
-content.js injected → scrapes DOM
-    ↓ (job data extracted)
-"Analyze Job" button appears (injected by content.js)
-    ↓ (user clicks)
-background.js service worker receives request
-    ├─→ HuggingFace Inference API (RoBERTa) [parallel]
-    └─→ Link detection + scraping [parallel]
-    ↓ (both complete)
-Gemini API: full prompt with job data + links + RoBERTa score
-    ↓
-Verdict + confidence + explanation returned
-    ↓
-content.js injects slide-in overlay panel on LinkedIn page
+```mermaid
+sequenceDiagram
+    actor User
+    participant LinkedIn as LinkedIn Page
+    participant Ext as Chrome Extension<br/>content.js
+    participant BG as Background Script<br/>background.js
+    participant Gemini as Google Gemini API
+    participant UI as Verdict Overlay<br/>popup.js
+
+    User->>LinkedIn: Navigate to job listing
+    LinkedIn->>Ext: Page load event
+    Ext->>LinkedIn: Inject "Analyze Job" button
+    User->>Ext: Click Analyze Job
+
+    Ext->>LinkedIn: Scrape job DOM<br/>title · company · description · requirements
+    Ext->>BG: Send job data (chrome.runtime.sendMessage)
+    BG->>Gemini: POST /generateContent<br/>fraud analysis prompt + job text
+    Gemini-->>BG: Structured analysis response
+    BG->>BG: Parse verdict + confidence + reasons
+    BG-->>Ext: Return result object
+    Ext->>UI: Render color-coded overlay
+
+    alt FRAUDULENT
+        UI->>User: FRAUDULENT overlay<br/>+ fraud indicators
+    else SUSPICIOUS
+        UI->>User: SUSPICIOUS overlay<br/>+ warning signs
+    else LEGITIMATE
+        UI->>User: LEGITIMATE overlay<br/>+ trust signals
+    end
 ```
 
 **Analysis Modes:**
@@ -1560,6 +1884,39 @@ EXPOSE 7860
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "2"]
 ```
 
+### M6.4.4 Deployment Architecture Diagram
+
+```mermaid
+flowchart LR
+    subgraph BUILD["Docker Build  HF Spaces"]
+        B1["FROM python:3.11-slim"]
+        B2["pip install requirements<br/>fastapi · uvicorn · torch · transformers"]
+        B3["Pre-download model weights<br/>aditya963/fraud-job-classifier"]
+        B4["EXPOSE 7860<br/>USER appuser UID 1000"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph API["FastAPI Service  app.py"]
+        A1["GET /<br/>Health check"]
+        A2["POST /predict<br/>Single JobPosting → PredictResponse"]
+        A3["POST /predict/batch<br/>Up to 16 postings"]
+    end
+
+    subgraph CLIENTS["Clients"]
+        C1["🌐 Web-app backend"]
+        C2["🔌 Chrome extension<br/>roberta-tool.js"]
+        C3["🔧 Direct API calls<br/>curl / Python"]
+    end
+
+    BUILD --> API
+    CLIENTS --> A2
+    CLIENTS --> A3
+
+    style BUILD fill:#e8f4fd,stroke:#2196F3
+    style API fill:#e8f5e9,stroke:#4CAF50
+    style CLIENTS fill:#fff3e0,stroke:#FF9800
+```
+
 ## M6.5 Input/Output Specification
 
 ### M6.5.1 Web Application Inputs
@@ -1591,83 +1948,96 @@ The results page displays:
 
 ## System Data Flow
 
-```
-                         ┌──────────────────────────────┐
-                         │       INPUT LAYER            │
-                         │  • Raw text paste            │
-                         │  • File upload (PDF/DOCX)    │
-                         │  • LinkedIn URL              │
-                         └──────────────┬───────────────┘
-                                        │
-                         ┌──────────────▼───────────────┐
-                         │     FIELD EXTRACTION         │
-                         │  LLM → 16 structured fields  │
-                         │  (title, company, email, etc)│
-                         └──────┬───────────────┬────────┘
-                                │               │
-               ┌────────────────▼──┐     ┌──────▼──────────────────┐
-               │ RoBERTa Classifier│     │  12-Tool Evidence        │
-               │  P(fraud) ∈ [0,1] │     │  Verification Pipeline  │
-               │  Threshold = 0.87 │     │                          │
-               └────────────┬──────┘     │ 1. scam_signals          │
-                            │            │ 2. email_verify          │
-                            │            │ 3. domain_reputation     │
-                            │            │ 4. website_verify        │
-                            │            │ 5. website_content       │
-                            │            │ 6. company_wikipedia     │
-                            │            │ 7. company_web_search    │
-                            │            │ 8. company_news          │
-                            │            │ 9. social_profiles       │
-                            │            │ 10. job_boards           │
-                            │            │ 11. phone_check          │
-                            │            │ 12. company_registry     │
-                            │            └──────┬───────────────────┘
-                            │                   │
-                         ┌──▼───────────────────▼──┐
-                         │   PER-TOOL LLM INFERENCE │
-                         │   GPT-4o-mini            │
-                         │   2–4 bullet summaries × 12 │
-                         └──────────────┬──────────┘
-                                        │
-                         ┌──────────────▼──────────────┐
-                         │    FINAL REPORT GENERATION  │
-                         │    GPT-4o-mini              │
-                         │    → Verdict: SAFE/SUSPICIOUS/│
-                         │      LIKELY_FAKE             │
-                         │    → Markdown narrative     │
-                         │    → Risk score             │
-                         └──────────────┬──────────────┘
-                                        │
-                         ┌──────────────▼──────────────┐
-                         │         OUTPUT              │
-                         │  Web results page           │
-                         │  JSON export                │
-                         │  Browser overlay (ext.)     │
-                         └─────────────────────────────┘
+```mermaid
+flowchart TD
+    INPUT(["User Input<br/>Text · File · URL"])
+
+    subgraph STEP1["Step 1 — Extraction"]
+        E1["LLM call via OpenRouter<br/>Extract 16 structured fields<br/>title · company · email · salary · location..."]
+        E2["Pydantic JobPosting model<br/>Validate + normalize fields"]
+    end
+
+    subgraph STEP1B["Step 1b — Deep Research"]
+        R1["DuckDuckGo search<br/>Fill missing contacts / website"]
+    end
+
+    subgraph STEP2["Step 2 — 12-Tool Verification"]
+        T1["📧 Email check"]
+        T2["🌐 Domain WHOIS"]
+        T3["🏢 Company search"]
+        T4["📞 Phone verify"]
+        T5["🔗 Website check"]
+        T6["📰 News search"]
+        T7["💼 LinkedIn lookup"]
+        T8["📋 Job boards"]
+        T9["⚠️ Scam signals"]
+        T10["📊 Glassdoor"]
+        T11["🗺️ Social profiles"]
+        T12["🤖 RoBERTa ML score"]
+    end
+
+    subgraph STEP3["Step 3 — Per-Tool LLM Inference"]
+        P1["LLM summarizes each tool result<br/>2–4 sentences × 12 = evidence base"]
+    end
+
+    subgraph STEP4["Step 4 — Final Report"]
+        W1["DuckDuckGo web intelligence"]
+        W2["Final LLM synthesis<br/>All evidence → verdict"]
+        W3["SAFE 🟢 · SUSPICIOUS 🟡 · LIKELY_FAKE 🔴"]
+    end
+
+    OUTPUT(["results/job_id.json<br/>HTML report page"])
+
+    INPUT --> STEP1
+    E1 --> E2 --> STEP1B
+    STEP1B --> STEP2
+    T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8 & T9 & T10 & T11 & T12 --> STEP3
+    STEP3 --> STEP4
+    W1 & W2 --> W3 --> OUTPUT
+
+    style STEP1 fill:#e8f4fd,stroke:#2196F3
+    style STEP1B fill:#e8f4fd,stroke:#2196F3
+    style STEP2 fill:#fff3e0,stroke:#FF9800
+    style STEP3 fill:#f3e5f5,stroke:#9C27B0
+    style STEP4 fill:#e8f5e9,stroke:#4CAF50
 ```
 
 ## Service Communication
 
-```
-Frontend (React, port 5173)
-    ↕ REST API calls
-Backend API (FastAPI, port 7860)
-    ↕ HTTP
-12-Tool Pipeline (in-process)
-    ↕ HTTP (external)
-Wikipedia API, DuckDuckGo, WHOIS, DNS
+```mermaid
+flowchart LR
+    subgraph FE["Frontend (React, port 5173)"]
+        F1[React SPA]
+    end
 
-Backend API
-    ↕ HTTP
-Model API (FastAPI, port 7860 / HF Spaces)
-    ↕ HuggingFace Hub
-aditya963/fraud-job-classifier
+    subgraph BE["Backend API (FastAPI, port 7860)"]
+        B1[Tool Router]
+        B2[LLM Endpoints]
+    end
 
-Web App (Flask, port 5000)
-    ↕ Spawns tool functions in-process
-12-Tool Pipeline
-    ↕ LangChain
-OpenRouter → GPT-4o-mini
+    subgraph TOOLS["12-Tool Pipeline (in-process)"]
+        TP[Wikipedia · DuckDuckGo · WHOIS · DNS]
+    end
+
+    subgraph MA["Model API (HF Spaces, port 7860)"]
+        M1[RoBERTa Inference]
+    end
+
+    subgraph WA["Web App (Flask, port 5000)"]
+        W1[12-Tool Pipeline]
+        W2[LangChain → OpenRouter → GPT-4o-mini]
+    end
+
+    F1 -->|REST API| B1
+    B1 --> TP
+    B1 -->|HTTP| M1
+    W1 --> W2
+
+    style FE fill:#fce4ec,stroke:#E91E63
+    style BE fill:#e8f5e9,stroke:#4CAF50
+    style TOOLS fill:#fff3e0,stroke:#FF9800
+    style MA fill:#e8f4fd,stroke:#2196F3
+    style WA fill:#e8f5e9,stroke:#4CAF50
 ```
 
 ---
@@ -2526,6 +2896,25 @@ This is why F1 (fraud class) is the primary metric.
 | Month 6 | M5 | Test set evaluation, error analysis, comparative analysis |
 | Month 6 | M6 | Full deployment, documentation, Chrome extension |
 
+```mermaid
+gantt
+    title FraudGuard — 6-Milestone Development Timeline
+    dateFormat  YYYY-MM
+    axisFormat  %b %Y
+
+    section Data and Exploration
+    M0 — Problem Statement           :done,   m0, 2025-08, 2025-09
+    M1 — Literature Review            :done,   m1, 2025-09, 2025-10
+    M2 — Dataset EDA and baseline     :done,   m2, 2025-10, 2025-11
+    section Model Development
+    M3 — Architecture and Pipeline    :done,   m3, 2025-11, 2025-12
+    M4 — Focal Loss and Optuna HPO   :done,   m4, 2025-12, 2026-02
+    section System Integration
+    M5 — Evaluation and Analysis      :done,   m5, 2026-02, 2026-03
+    section Deployment
+    M6 — Deployment and Docs and API  :done,   m6, 2026-03, 2026-04
+```
+
 ### Key Technical Decisions Made During Development
 
 | Decision | Rationale | Outcome |
@@ -2570,6 +2959,38 @@ This is why F1 (fraud class) is the primary metric.
 - Cross-platform extension (Firefox, Safari)
 - Mobile application for on-the-go job safety checks
 - Integration with government fraud databases (NCRP, IC3)
+
+```mermaid
+graph TB
+    NOW["Current State<br/>FraudGuard v1.0<br/>English · Local Flask · Chrome Extension"]
+
+    subgraph SHORT["Short-term  1–3 months"]
+        S1["Multilingual support<br/>xlm-roberta-base<br/>Hindi + regional languages"]
+        S2["Sliding-window encoding<br/>Handle >512 token postings<br/>+11% sample coverage"]
+        S3["Company registry tool<br/>Implement MCA / WHOIS lookups<br/>Currently stub"]
+    end
+
+    subgraph MED["Medium-term  3–6 months"]
+        M1["Async task queue<br/>Celery + Redis<br/>Non-blocking analysis"]
+        M2["Docker + HTTPS deployment<br/>Production-ready containerization"]
+        M3["User feedback loop<br/>Collect corrections → retrain pipeline"]
+    end
+
+    subgraph LONG["Long-term  6–12 months"]
+        L1["Real-time platform integration<br/>LinkedIn / Naukri / Indeed API"]
+        L2["Adversarial robustness<br/>Defend against prompt injection<br/>in job postings"]
+        L3["Explainability layer<br/>Token-level attention visualization"]
+    end
+
+    NOW --> SHORT
+    SHORT --> MED
+    MED --> LONG
+
+    style NOW fill:#e8f4fd,stroke:#2196F3
+    style SHORT fill:#e8f5e9,stroke:#4CAF50
+    style MED fill:#fff3e0,stroke:#FF9800
+    style LONG fill:#f3e5f5,stroke:#9C27B0
+```
 
 ---
 
