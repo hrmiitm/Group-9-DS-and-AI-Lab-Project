@@ -1,0 +1,32 @@
+.wrapper { display: flex; flex-direction: column; gap: 16px; }
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterActive {
+  background: var(--accent-glow) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-light) !important;
+}
+
+.count {
+  background: var(--bg-base);
+  border-radius: 99px;
+  padding: 0 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+}

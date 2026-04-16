@@ -1,0 +1,100 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 80px;
+}
+
+.connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  transition: background 0.4s;
+  min-width: 12px;
+}
+.connectorDone { background: var(--accent); }
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.stepIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  border: 2px solid var(--border);
+  transition: var(--transition);
+}
+
+.stepLabel {
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+/* States */
+.done .stepIcon   { background: var(--accent); border-color: var(--accent); color: #fff; font-size: 13px; }
+.done .stepLabel  { color: var(--accent-light); }
+.active .stepIcon { background: var(--accent-glow); border-color: var(--accent); }
+.active .stepLabel{ color: var(--text-primary); font-weight: 600; }
+.pending .stepIcon{ background: var(--bg-elevated); }
+.pending .stepLabel{ color: var(--text-muted); }
+
+.toolProg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.toolProgLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.toolProgCount {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent-light);
+  font-weight: 600;
+}
+
+.currentTool {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 500px) {
+  .stepLabel { display: none; }
+  .steps { gap: 4px; }
+}

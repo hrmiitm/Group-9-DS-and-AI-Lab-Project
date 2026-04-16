@@ -1,57 +1,62 @@
-# Model weights — too large for GitHub (use HuggingFace Hub instead)
-models/*/model.safetensors
-models/*/optimizer.pt
-models/*/scheduler.pt
-models/*/scaler.pt
-models/*/rng_state.pth
-models/
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv_api/
 
-# Datasets
-data/
-
-# Test probabilities
-*.npy
-
-# IDE
-.vscode/
-.idea/
-
-# Checkpoints
-checkpoints/
-.ipynb_checkpoints/
+# Node / JS
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-dist/
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Environment
-.env
-.env.local
-.env.*.local
-venv/
-.venv/
-env/
-ENV/
+# Virtual environments tracking files
+pip-log.txt
+pip-delete-this-directory.txt
 
-# OS
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-
-# Web-app runtime dirs (auto-created, store user data)
-web-app/results/
-web-app/uploads/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Large binary files
-*.bin
-*.pt
-*.safetensors
-*.zip
-*.tar.gz
