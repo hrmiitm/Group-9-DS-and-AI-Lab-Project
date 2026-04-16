@@ -79,3 +79,24 @@
 @media (max-width: 500px) {
   .grid2 { grid-template-columns: 1fr; }
 }
+
+/* Small screens — full-height modal with scrollable body */
+@media (max-width: 480px) {
+  .modal {
+    max-height: 95vh;
+    border-radius: var(--radius-lg);
+  }
+  .modalHeader { padding: 14px 16px 12px; }
+  .body { padding: 16px; }
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  .footer > div {
+    display: flex;
+    gap: 8px;
+  }
+  .footer button { flex: 1; justify-content: center; }
+}

@@ -296,3 +296,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   .container { padding: 0 14px; }
   .card { padding: 14px; }
 }
+
+/* ── Tablet range (768px – 1024px) ──────────────────────────── */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container { padding: 0 18px; }
+  .card { padding: 16px; }
+}
+
+/* ── Small mobile (≤480px) ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .container { padding: 0 10px; }
+  .btn { padding: 6px 12px; }
+  .btn-lg { padding: 10px 18px; font-size: 14px; }
+}

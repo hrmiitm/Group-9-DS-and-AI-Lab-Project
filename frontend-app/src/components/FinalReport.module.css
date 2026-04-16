@@ -13,8 +13,24 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
+  padding: 22px 24px;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative background circle for visual impact */
+.verdictBanner::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0.07;
+  background: currentColor;
+  pointer-events: none;
 }
 
 .safe        { background: var(--safe-bg);        border-bottom: 2px solid var(--safe);       }
@@ -22,10 +38,10 @@
 .fake        { background: var(--fake-bg);         border-bottom: 2px solid var(--fake);       }
 
 .verdictLeft { display: flex; align-items: center; gap: 14px; }
-.verdictIcon { font-size: 32px; }
+.verdictIcon { font-size: 36px; }
 
 .verdictTitle { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
-.verdictLabel { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.verdictLabel { font-size: 22px; font-weight: 800; color: var(--text-primary); }
 .verdictBadge { font-size: 12px; padding: 5px 14px; }
 
 .reportBody {

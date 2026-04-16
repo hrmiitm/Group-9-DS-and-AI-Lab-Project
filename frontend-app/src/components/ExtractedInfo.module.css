@@ -86,6 +86,12 @@
   white-space: nowrap;
 }
 
+/* Word-wrap for long field values (emails, URLs, etc.) */
+.fieldValueText {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 600px) {
   .grid { grid-template-columns: 1fr; }
 }

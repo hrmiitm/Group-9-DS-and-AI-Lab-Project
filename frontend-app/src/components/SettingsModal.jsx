@@ -67,25 +67,25 @@ export default function SettingsModal({ onClose }) {
                 <label htmlFor="s-extract-model">Extract JD Model</label>
                 <input id="s-extract-model" className="input" value={local.extractModel}
                   onChange={e => set('extractModel', e.target.value)}
-                  placeholder="openai/gpt-4o-mini" />
+                  placeholder="openai/gpt-4.1-mini" />
               </div>
               <div className={styles.field}>
                 <label htmlFor="s-research-model">Deep Research Model</label>
                 <input id="s-research-model" className="input" value={local.deepResearchModel}
                   onChange={e => set('deepResearchModel', e.target.value)}
-                  placeholder="openai/gpt-4o-mini" />
+                  placeholder="openai/gpt-4.1-mini" />
               </div>
               <div className={styles.field}>
                 <label htmlFor="s-inference-model">Tool Inference Model</label>
                 <input id="s-inference-model" className="input" value={local.toolInferenceModel}
                   onChange={e => set('toolInferenceModel', e.target.value)}
-                  placeholder="openai/gpt-4o-mini" />
+                  placeholder="openai/gpt-4.1-mini" />
               </div>
               <div className={styles.field}>
                 <label htmlFor="s-summary-model">Final Summary Model</label>
                 <input id="s-summary-model" className="input" value={local.finalSummaryModel}
                   onChange={e => set('finalSummaryModel', e.target.value)}
-                  placeholder="openai/gpt-4o-mini" />
+                  placeholder="openai/gpt-4.1-mini" />
               </div>
             </div>
           </section>

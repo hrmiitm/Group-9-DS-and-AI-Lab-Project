@@ -43,6 +43,14 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
   const [infLoading,setInfLoading]= useState(false)
   const [showRaw,   setShowRaw]   = useState(false)
   const [error,     setError]     = useState(null)
+  const [copied,    setCopied]    = useState(false)
+
+  const handleCopy = () => {
+    if (!result) return
+    navigator.clipboard.writeText(JSON.stringify(result, null, 2))
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) })
+      .catch(() => {})
+  }
 
   const handleRun = async () => {
     setStatus('loading')
@@ -169,6 +177,9 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
           {inference?.bullets?.length > 0 && (
             <BulletList bullets={inference.bullets} />
           )}
+          {inference?.ok && !inference?.bullets?.length && inference?.inference && (
+            <p className={styles.infFallback}>{inference.inference}</p>
+          )}
           {inference?.ok === false && (
             <p className={styles.infError}>LLM inference unavailable</p>
           )}
@@ -178,12 +189,21 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
       {/* ── Raw result ── */}
       {result && (
         <div className={styles.rawSection}>
-          <button
-            className={`btn btn-ghost btn-sm ${styles.rawToggle}`}
-            onClick={() => setShowRaw(v => !v)}
-          >
-            {showRaw ? '▲ Hide' : '▼ Raw JSON'}
-          </button>
+          <div className={styles.rawActions}>
+            <button
+              className={`btn btn-ghost btn-sm ${styles.rawToggle}`}
+              onClick={() => setShowRaw(v => !v)}
+            >
+              {showRaw ? '▲ Hide' : '▼ Raw JSON'}
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={handleCopy}
+              title="Copy raw JSON to clipboard"
+            >
+              {copied ? '✓ Copied' : '📋 Copy'}
+            </button>
+          </div>
           {showRaw && (
             <pre className="code-block">{JSON.stringify(result, null, 2)}</pre>
           )}

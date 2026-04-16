@@ -227,104 +227,501 @@ Open the app in your browser → click **⚙️ Settings** → confirm:
 
 ## Backend — HuggingFace Spaces Deployment
 
-### 1. Create a Space
+HuggingFace Spaces runs the backend as a Docker container. The free CPU tier is sufficient — no GPU needed.
 
-1. Go to [huggingface.co/new-space](https://huggingface.co/new-space)
-2. Choose **Docker** SDK, **Blank** template
-3. Set visibility (public or private)
+### Deployment Flow
 
-### 2. Upload backend files
+```mermaid
+flowchart TD
+    A(["🧑‍💻 Developer\nlocal machine"]) --> B
 
-Upload the entire `backend-api/` directory contents to the Space repository:
+    subgraph PREP["① Prepare Files"]
+        B["backend-api/ directory\napp.py · requirements.txt\nDockerfile · .dockerignore\ncore/ · routers/ · services/ · tools/"]
+    end
+
+    subgraph HFS["② HuggingFace Spaces Setup"]
+        C["Create new Space\nhuggingface.co/new-space\nSDK: Docker  |  Template: Blank"]
+        D["Add Repository Secrets\nOPENAI_API_KEY\nOPENAI_BASE_URL\nLLM_MODEL"]
+        C --> D
+    end
+
+    subgraph PUSH["③ Push Code"]
+        E["git clone Space repo\ngit add backend-api/ files\ngit push origin main"]
+        F["HF Spaces auto-builds\nDockerfile → container image\n⏱ ~5–10 min first build"]
+        E --> F
+    end
+
+    subgraph LIVE["④ Space Running"]
+        G["Health check passes\n/health → 200 OK"]
+        H["Backend URL live\nhttps://username-spacename.hf.space"]
+        G --> H
+    end
+
+    subgraph FE_CONNECT["⑤ Connect Frontend"]
+        I["Open ⚙️ Settings in browser\nSet Backend API URL\nhttps://username-spacename.hf.space"]
+        J["End-to-end pipeline\nworks on production"]
+        I --> J
+    end
+
+    PREP --> HFS --> PUSH --> LIVE --> FE_CONNECT
+
+    style PREP fill:#1e1b4b,stroke:#6366f1,color:#e0e7ff
+    style HFS fill:#172554,stroke:#3b82f6,color:#bfdbfe
+    style PUSH fill:#1c1917,stroke:#d97706,color:#fde68a
+    style LIVE fill:#14532d,stroke:#16a34a,color:#dcfce7
+    style FE_CONNECT fill:#4a044e,stroke:#a855f7,color:#f3e8ff
+    style A fill:#6366f1,stroke:#818cf8,color:#fff
+```
+
+---
+
+### Step-by-Step Instructions
+
+#### Step 1 — Create a HuggingFace Space
+
+1. Go to **[huggingface.co/new-space](https://huggingface.co/new-space)**
+2. Fill in:
+   - **Owner**: your username or org
+   - **Space name**: e.g. `fraudguard-api`
+   - **License**: MIT (or your choice)
+   - **SDK**: **Docker**
+   - **Docker template**: **Blank**
+   - **Visibility**: Public (free) or Private (requires Pro)
+3. Click **Create Space** — you'll be taken to the Space page.
+
+#### Step 2 — Clone the Space repository
+
+```bash
+# Install git-lfs first (required by HuggingFace)
+git lfs install
+
+# Clone your new Space (replace USERNAME and SPACENAME)
+git clone https://huggingface.co/spaces/USERNAME/SPACENAME
+cd SPACENAME
+```
+
+#### Step 3 — Copy backend files into the Space repo
+
+Copy **only the contents of `backend-api/`** (not the folder itself) into the cloned Space directory:
+
+```bash
+# From the project root
+cp -r backend-api/. SPACENAME/
+
+# Verify the structure at the root of SPACENAME/:
+# app.py
+# requirements.txt
+# Dockerfile
+# .dockerignore
+# core/
+# routers/
+# services/
+# tools/
+```
+
+> The `Dockerfile` must be at the **root** of the Space repository, not inside a subdirectory.
+
+#### Step 4 — Configure Repository Secrets
+
+Secrets are environment variables injected at container startup — **never put API keys in code or `requirements.txt`**.
+
+1. Go to your Space page on HuggingFace
+2. Click **Settings** (top-right gear icon)
+3. Scroll to **Repository Secrets**
+4. Add each secret:
+
+| Secret Name | Value | Required |
+|-------------|-------|----------|
+| `OPENAI_API_KEY` | Your AIPipe or OpenAI token | **Yes** |
+| `OPENAI_BASE_URL` | `https://aipipe.org/openrouter/v1` | No (has default) |
+| `LLM_MODEL` | `openai/gpt-4.1-mini` | No (has default) |
+| `LLM_TEMPERATURE` | `0.3` | No (has default) |
+
+#### Step 5 — Push code and trigger the build
+
+```bash
+cd SPACENAME
+
+git add .
+git commit -m "Deploy FraudGuard backend API"
+git push origin main
+```
+
+HuggingFace Spaces detects the push and automatically builds the Docker image.
+
+- **First build**: ~5–10 minutes (downloads RoBERTa model ~500 MB + PyTorch CPU wheel)
+- **Subsequent builds**: ~2–3 minutes (Docker layer cache reused)
+
+Monitor progress in the **Logs** tab on your Space page.
+
+#### Step 6 — Verify the deployment
+
+Once the Space shows **Running** (green dot):
+
+```bash
+# Replace with your actual Space URL
+export SPACE_URL=https://USERNAME-SPACENAME.hf.space
+
+# Health check
+curl $SPACE_URL/health
+# → {"status":"ok"}
+
+# Full status with LLM config
+curl $SPACE_URL/
+# → {"status":"ok","version":"1.1.0","llm_settings":{"api_key_from_env":true,...}}
+
+# Confirm model is gpt-4.1-mini
+curl $SPACE_URL/api/v1/llm/status
+# → {"ok":true,"effective_model":"openai/gpt-4.1-mini","api_key_from_env":true,...}
+
+# Browse all tool metadata
+curl $SPACE_URL/api/v1/tools | python3 -m json.tool
+```
+
+Swagger UI is also available at: `https://USERNAME-SPACENAME.hf.space/docs`
+
+#### Step 7 — Connect the frontend
+
+Open the FraudGuard frontend → click **⚙️ Settings** → set:
 
 ```
-app.py
-requirements.txt
-Dockerfile
-core/
-routers/
-services/
-tools/
+Backend API URL:  https://USERNAME-SPACENAME.hf.space
+API Key:          (leave blank — the Space has it from env)
 ```
 
-### 3. Configure Secrets
+---
 
-In your Space → **Settings** → **Repository Secrets**, add:
+### Dockerfile Explained
 
-| Secret Name | Value |
-|-------------|-------|
-| `OPENAI_API_KEY` | your AIPipe token |
-| `OPENAI_BASE_URL` | `https://aipipe.org/openrouter/v1` |
-| `LLM_MODEL` | `openai/gpt-4.1-mini` |
+The production `Dockerfile` uses a **two-stage build** for a smaller, more secure image:
 
-> Secrets are injected as environment variables at runtime — never hardcode keys.
+```mermaid
+flowchart LR
+    subgraph S1["Stage 1 — builder"]
+        B1["python:3.11-slim\nbase image"]
+        B2["Install build tools\nbuild-essential · gcc · libffi"]
+        B3["Create /opt/venv\nisolated virtualenv"]
+        B4["pip install torch CPU-only\n~500 MB but no CUDA"]
+        B5["pip install -r requirements.txt\nall other deps"]
+        B1 --> B2 --> B3 --> B4 --> B5
+    end
 
-### 4. Dockerfile
+    subgraph S2["Stage 2 — runtime"]
+        R1["python:3.11-slim\nfresh base (no build tools)"]
+        R2["Install runtime libs only\ncurl · whois"]
+        R3["Copy /opt/venv\nfrom builder stage"]
+        R4["Create non-root user\nappuser (UID 1000)"]
+        R5["Copy app source\nCHOWN to appuser"]
+        R6["EXPOSE 7860\nHEALTHCHECK /health\nCMD uvicorn"]
+        R1 --> R2 --> R3 --> R4 --> R5 --> R6
+    end
 
-The included `Dockerfile` is already configured for HuggingFace Spaces:
+    S1 -->|"COPY --from=builder\n/opt/venv"| S2
 
-```dockerfile
-FROM python:3.11-slim
-# Installs whois + curl system deps, then pip installs requirements.txt
-# Exposes port 7860, runs uvicorn
+    style S1 fill:#1c1917,stroke:#78716c,color:#e7e5e4
+    style S2 fill:#14532d,stroke:#16a34a,color:#dcfce7
 ```
 
-The Space will build automatically on push. First build takes ~5 minutes (model download).
+**Why two stages?**
+- The `builder` stage installs `gcc`, `build-essential`, etc. — needed to compile Python wheels
+- The `runtime` stage discards all those tools, keeping the final image lean (~800 MB vs ~1.6 GB)
+- Build tools are a common attack surface; removing them reduces the security footprint
 
-### 5. Your backend URL
+**Key Dockerfile features:**
 
-After the Space is running, your URL is:
-```
-https://<username>-<space-name>.hf.space
-```
+| Feature | Purpose |
+|---------|---------|
+| `torch CPU-only wheel` | Avoids pulling CUDA (~3 GB) — free Spaces have no GPU |
+| Requirements copied before source | Docker caches the expensive pip install layer; only invalidated when `requirements.txt` changes |
+| Non-root user `appuser` (UID 1000) | Security best practice; HF Spaces also runs as UID 1000 by default |
+| `HEALTHCHECK` | Docker/HF Spaces polls `/health` every 30s; 120s grace for cold-start model download |
+| `PYTHONUNBUFFERED=1` | Log output appears immediately in HF Spaces Logs tab |
+| `HF_HOME` env var | RoBERTa model cached in `/app/.cache` — persists if a storage volume is mounted |
 
 ---
 
 ## Frontend — Production Deployment
 
-### Build
+The frontend is a React SPA built with Vite. The production output is a folder of static files (`dist/`) that can be served by any static host or a containerised Nginx server.
+
+### Build locally first (all options)
 
 ```bash
 cd frontend-app
+npm install
 npm run build
-# → Creates dist/ folder with static files
+# → dist/  (index.html + hashed JS/CSS bundles)
 ```
 
-### Option A: Vercel (recommended)
+Verify the build works before deploying:
+
+```bash
+npm run preview
+# → http://localhost:4173  (serves dist/ exactly as production would)
+```
+
+---
+
+## Frontend — HuggingFace Spaces Deployment (Docker + Nginx)
+
+> **Recommended** when you want both backend and frontend on HuggingFace Spaces for a fully self-contained demo.
+
+HuggingFace's **Static SDK** cannot serve a React SPA — it has no fallback route for client-side navigation. The Docker + Nginx approach solves this and gives you gzip compression, cache headers, and a health endpoint too.
+
+### Deployment Flow
+
+```mermaid
+flowchart TD
+    A(["🧑‍💻 Developer\nlocal machine"]) --> B
+
+    subgraph PREP["① Prepare Files"]
+        B["frontend-app/ directory\nDockerfile · .dockerignore · nginx.conf\npackage.json · vite.config.js\nsrc/ · public/ · index.html"]
+    end
+
+    subgraph HFS["② HuggingFace Spaces Setup"]
+        C["Create new Space\nhuggingface.co/new-space\nSDK: Docker  |  Template: Blank"]
+        D["No Secrets needed\n(frontend has no server-side keys)\nBackend URL set at runtime in browser"]
+        C --> D
+    end
+
+    subgraph PUSH["③ Push Code"]
+        E["git clone Space repo\ngit add frontend files\ngit push origin main"]
+        F["HF Spaces auto-builds\nStage 1: npm install + vite build\nStage 2: Nginx serves dist/\n⏱ ~2–3 min"]
+        E --> F
+    end
+
+    subgraph LIVE["④ Space Running"]
+        G["HEALTHCHECK passes\n/health → 200 OK"]
+        H["Frontend URL live\nhttps://username-spacename.hf.space"]
+        G --> H
+    end
+
+    subgraph CONFIG["⑤ Configure Backend URL"]
+        I["Open app in browser\nClick ⚙️ Settings\nSet Backend API URL to\nhttps://username-BACKEND-space.hf.space"]
+        J["Full pipeline works\nJD → Verdict in browser"]
+        I --> J
+    end
+
+    PREP --> HFS --> PUSH --> LIVE --> CONFIG
+
+    style PREP fill:#1e1b4b,stroke:#6366f1,color:#e0e7ff
+    style HFS fill:#172554,stroke:#3b82f6,color:#bfdbfe
+    style PUSH fill:#1c1917,stroke:#d97706,color:#fde68a
+    style LIVE fill:#14532d,stroke:#16a34a,color:#dcfce7
+    style CONFIG fill:#4a044e,stroke:#a855f7,color:#f3e8ff
+    style A fill:#6366f1,stroke:#818cf8,color:#fff
+```
+
+---
+
+### Step-by-Step Instructions
+
+#### Step 1 — Create a HuggingFace Space
+
+1. Go to **[huggingface.co/new-space](https://huggingface.co/new-space)**
+2. Fill in:
+   - **Owner**: your username or org
+   - **Space name**: e.g. `fraudguard-ui`
+   - **License**: MIT (or your choice)
+   - **SDK**: **Docker**
+   - **Docker template**: **Blank**
+   - **Visibility**: Public (free) or Private (Pro)
+3. Click **Create Space**
+
+> No Secrets are needed for the frontend — it has no server-side API keys. The backend URL is configured at runtime by the user in the ⚙️ Settings modal.
+
+#### Step 2 — Clone the Space repository
+
+```bash
+git lfs install
+
+# Replace USERNAME and SPACENAME
+git clone https://huggingface.co/spaces/USERNAME/SPACENAME
+cd SPACENAME
+```
+
+#### Step 3 — Copy frontend files into the Space repo
+
+Copy **the contents of `frontend-app/`** (not the folder itself) into the cloned Space directory:
+
+```bash
+# From the project root
+cp -r frontend-app/. SPACENAME/
+
+# The root of SPACENAME/ must contain:
+# Dockerfile
+# .dockerignore
+# nginx.conf
+# package.json
+# package-lock.json
+# vite.config.js
+# index.html
+# src/
+# public/
+```
+
+> `node_modules/` and `dist/` are excluded by `.dockerignore` — Docker rebuilds them inside the container.
+
+#### Step 4 — Push code and trigger the build
+
+```bash
+cd SPACENAME
+
+git add .
+git commit -m "Deploy FraudGuard frontend"
+git push origin main
+```
+
+HuggingFace Spaces detects the push and builds automatically. Monitor progress in the **Logs** tab:
+
+- **Stage 1 (builder)**: `npm install` + `vite build` — ~1–2 min
+- **Stage 2 (runtime)**: Nginx starts — ~10 sec
+- **Total**: ~2–3 min (much faster than the backend — no model download)
+
+#### Step 5 — Verify the deployment
+
+Once the Space shows **Running** (green dot):
+
+```bash
+export FRONTEND_URL=https://USERNAME-SPACENAME.hf.space
+
+# Health check (served by Nginx directly)
+curl $FRONTEND_URL/health
+# → ok
+
+# Main page loads (returns index.html)
+curl -sI $FRONTEND_URL/ | grep "HTTP/"
+# → HTTP/1.1 200 OK
+
+# Any SPA sub-route also returns index.html (React Router handles it)
+curl -sI $FRONTEND_URL/some-route | grep "HTTP/"
+# → HTTP/1.1 200 OK  (not 404)
+```
+
+#### Step 6 — Connect to the backend Space
+
+Open `https://USERNAME-SPACENAME.hf.space` in your browser:
+
+1. Click **⚙️ Settings** (top-right)
+2. Set **Backend API URL** to your backend Space URL:
+   ```
+   https://USERNAME-BACKEND-SPACENAME.hf.space
+   ```
+3. Optionally set an **API Key** if needed
+4. Click **Save Settings**
+5. Paste a job description and click **Analyse Job Posting** — the full pipeline runs end-to-end
+
+---
+
+### Dockerfile Explained (Frontend)
+
+```mermaid
+flowchart LR
+    subgraph S1["Stage 1 — builder  (node:22-alpine)"]
+        B1["Copy package.json\npackage-lock.json"]
+        B2["npm install\ninstalls deps (resilient to\nnative module lockfile drift)"]
+        B3["Copy src/ public/\nindex.html vite.config.js"]
+        B4["npm run build\nvite compiles + tree-shakes\n→ /app/dist/"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph S2["Stage 2 — runtime  (nginx:1.27-alpine)"]
+        R1["Copy nginx.conf\n→ /etc/nginx/conf.d/app.conf"]
+        R2["Copy /app/dist\n→ /usr/share/nginx/html"]
+        R3["chown -R 1000:1000\nnginx runtime dirs"]
+        R4["USER 1000\nnon-root security"]
+        R5["EXPOSE 7860\nHEALTHCHECK /health\nCMD nginx -g daemon off"]
+        R1 --> R2 --> R3 --> R4 --> R5
+    end
+
+    S1 -->|"COPY --from=builder\n/app/dist"| S2
+
+    style S1 fill:#1c1917,stroke:#d97706,color:#fde68a
+    style S2 fill:#172554,stroke:#3b82f6,color:#bfdbfe
+```
+
+**Key decisions:**
+
+| Feature | Why |
+|---------|-----|
+| `node:22-alpine` builder | Required by vite@8, @vitejs/plugin-react@6, and rolldown which all need `^20.19.0 \|\| >=22.12.0`; Node 18 is incompatible |
+| `package.json` copied before `src/` | Docker caches the `npm install` layer — only re-runs when dependencies change, not on every code edit |
+| `npm install` not `npm ci` | Resilient to native module lockfile drift (e.g. rolldown's `@emnapi/core`); `npm ci` fails when these platform entries are missing from the lockfile |
+| `nginx:1.27-alpine` runtime | ~23 MB image; no Node runtime in production |
+| `try_files $uri /index.html` | React SPA fallback — all unknown URLs return `index.html` so client-side routing works |
+| Port 7860 in `nginx.conf` | HuggingFace Spaces requires the container to listen on 7860 |
+| Hashed asset cache headers (`1y`) | Vite adds a content hash to every JS/CSS filename; safe to cache forever |
+| `index.html` no-cache header | Forces browser to fetch fresh `index.html` after every redeployment |
+| Non-root user UID 1000 | Security best practice; matches HF Spaces default UID |
+| `HEALTHCHECK` via `wget` | Alpine's Nginx image includes `wget` but not `curl` |
+
+---
+
+## Other Frontend Deployment Options
+
+### Option B: Vercel (simplest for frontend)
 
 ```bash
 npm install -g vercel
+cd frontend-app
 vercel deploy --prod
 ```
 
-Or connect the GitHub repo to Vercel via the dashboard — it auto-detects Vite and sets `build command: npm run build`, `output dir: dist`.
+Or connect the GitHub repo to Vercel via the dashboard — it auto-detects Vite and configures:
+- **Build command**: `npm run build`
+- **Output directory**: `dist`
+- **Framework preset**: Vite
 
-### Option B: Netlify
+No additional configuration needed. Vercel handles SPA routing automatically.
 
-Drag and drop the `dist/` folder at [app.netlify.com](https://app.netlify.com), or use:
+### Option C: Netlify
 
 ```bash
 npm install -g netlify-cli
+cd frontend-app
+npm run build
 netlify deploy --prod --dir=dist
 ```
 
-### Option C: GitHub Pages
+Create a `frontend-app/public/_redirects` file to enable SPA routing:
 
-1. In `frontend-app/vite.config.js`, set:
+```
+/*  /index.html  200
+```
+
+Or via `netlify.toml` at the project root:
+
+```toml
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200
+```
+
+### Option D: GitHub Pages
+
+1. In `frontend-app/vite.config.js`, change `base`:
    ```javascript
-   base: '/your-repo-name/'
+   base: '/Group-9-DS-and-AI-Lab-Project/'
    ```
-2. Build: `npm run build`
-3. Push `dist/` to `gh-pages` branch
+2. Build and deploy:
+   ```bash
+   cd frontend-app
+   npm run build
+   npm install -g gh-pages
+   gh-pages -d dist
+   ```
+3. GitHub Pages does not support SPA routing out of the box. Add a `404.html` that redirects to `index.html`, or use a [hash router](https://reactrouter.com/en/main/routers/create-hash-router).
 
-### Connecting to HuggingFace Backend
+### Connecting Any Frontend Deployment to the HuggingFace Backend
 
-After deploying the frontend, users set the Backend URL in ⚙️ Settings:
+After deploying the frontend anywhere, configure the backend URL once in the Settings modal — no rebuild required:
+
 ```
-https://<username>-<space-name>.hf.space
+⚙️ Settings → Backend API URL → https://USERNAME-BACKEND-SPACENAME.hf.space
 ```
 
-No build-time environment variables are needed — all settings are runtime via the Settings modal.
+Settings persist in `localStorage`. Users only need to set this once per browser.
 
 ---
 
@@ -491,7 +888,7 @@ graph TD
     ROOT["📁 Group-9-DS-and-AI-Lab-Project"]
 
     ROOT --> BA["📁 backend-api\nFastAPI · Python 3.11"]
-    ROOT --> FA["📁 frontend-app\nReact 19 · Vite · Node 18"]
+    ROOT --> FA["📁 frontend-app\nReact 19 · Vite · Node 22"]
     ROOT --> RD["📄 README_Deployment.md"]
 
     BA --> APP["app.py\nEntry point · CORS · Router registration"]
@@ -514,6 +911,9 @@ graph TD
     FA --> SRC["📁 src/"]
     FA --> PKG["package.json"]
     FA --> VCFG["vite.config.js"]
+    FA --> FDF["Dockerfile\nNode build → Nginx runtime"]
+    FA --> FDIG[".dockerignore\nExcludes node_modules · dist · .env"]
+    FA --> NGX["nginx.conf\nPort 7860 · SPA fallback · gzip · cache"]
 
     SRC --> AJSX["App.jsx\nPipeline orchestrator · All state"]
     SRC --> CTX["📁 contexts/\nSettingsContext.jsx — localStorage"]
@@ -553,43 +953,53 @@ flowchart LR
     end
 
     subgraph BUILD["🔨 Build & Package"]
-        B_BE["Docker image\nDockerfile → HF Space"]
-        B_FE["npm run build\n→ dist/ static files"]
+        B_BE["backend-api/Dockerfile\npython:3.11-slim → uvicorn"]
+        B_FE["frontend-app/Dockerfile\nnode:22-alpine → nginx:1.27-alpine"]
     end
 
-    subgraph PROD["🚀 Production"]
-        subgraph HF["HuggingFace Spaces"]
-            HF_BE["Backend API\nhttps://user-space.hf.space\nport 7860"]
-            HF_SEC["Secrets\nOPENAI_API_KEY\nOPENAI_BASE_URL\nLLM_MODEL"]
-            HF_SEC -.->|"injected at runtime"| HF_BE
+    subgraph PROD["🚀 Production — HuggingFace Spaces"]
+        subgraph HF_BE_BOX["Backend Space  (Docker SDK)"]
+            HF_BE["FastAPI + uvicorn\nhttps://user-fraudguard-api.hf.space\nport 7860"]
+            HF_SEC["Repository Secrets\nOPENAI_API_KEY\nOPENAI_BASE_URL · LLM_MODEL"]
+            HF_SEC -.->|"env vars at runtime"| HF_BE
         end
-        subgraph CDN["Static Hosting"]
-            VER["Vercel"]
-            NET["Netlify"]
-            GHP["GitHub Pages"]
+        subgraph HF_FE_BOX["Frontend Space  (Docker SDK)"]
+            HF_FE["Nginx serving React SPA\nhttps://user-fraudguard-ui.hf.space\nport 7860"]
+            HF_CFG["No secrets needed\nBackend URL set in\n⚙️ Settings modal at runtime"]
+            HF_CFG -.-> HF_FE
         end
-        HF_BE <-- "CORS: *\nHTTP/JSON" --> CDN
+        HF_BE <-- "CORS: *\nHTTP/JSON" --> HF_FE
+    end
+
+    subgraph ALT["🔀 Alternative Frontend Hosts"]
+        VER["Vercel"]
+        NET["Netlify"]
+        GHP["GitHub Pages"]
     end
 
     subgraph EXT2["☁️ External APIs"]
-        AIPIPE2["AIPipe\ngpt-4.1-mini"]
+        AIPIPE2["AIPipe / OpenRouter\ngpt-4.1-mini"]
         HFH["HuggingFace Hub\nRoBERTa model"]
     end
 
     DEV -->|"git push"| BUILD
-    B_BE -->|"auto-deploy"| HF
-    B_FE -->|"deploy dist/"| CDN
+    B_BE -->|"auto-build\n& deploy"| HF_BE_BOX
+    B_FE -->|"auto-build\n& deploy"| HF_FE_BOX
+    B_FE -->|"npm run build\ndeploy dist/"| ALT
+
     HF_BE --> AIPIPE2
     HF_BE --> HFH
 
     USER(["👤 End User\nbrowser"])
-    USER --> CDN
+    USER --> HF_FE
+    USER --> ALT
 
     style DEV fill:#1e1b4b,stroke:#6366f1,color:#e0e7ff
     style BUILD fill:#1c1917,stroke:#78716c,color:#e7e5e4
-    style PROD fill:#14532d,stroke:#16a34a,color:#dcfce7
-    style EXT2 fill:#1e293b,stroke:#0ea5e9,color:#bae6fd
-    style HF fill:#0f172a,stroke:#22c55e,color:#94a3b8
-    style CDN fill:#0f172a,stroke:#22c55e,color:#94a3b8
+    style PROD fill:#052e16,stroke:#16a34a,color:#dcfce7
+    style ALT fill:#1e293b,stroke:#64748b,color:#cbd5e1
+    style EXT2 fill:#0c1a2e,stroke:#0ea5e9,color:#bae6fd
+    style HF_BE_BOX fill:#0f172a,stroke:#22c55e,color:#94a3b8
+    style HF_FE_BOX fill:#0f172a,stroke:#6366f1,color:#94a3b8
     style USER fill:#6366f1,stroke:#818cf8,color:#fff
 ```

@@ -27,6 +27,21 @@ from services.langchain_service import (
 
 router = APIRouter(prefix="/api/v1/llm", tags=["LLM Services"])
 
+from core.llm_config import llm_settings_available as _llm_status
+
+
+@router.get("/status")
+async def api_llm_status():
+    """
+    Returns the current LLM configuration state.
+    Lets the frontend know whether the backend has an API key configured
+    (from env vars) or if the user must supply one via the Settings modal.
+
+    Output: {ok, api_key_from_env, base_url_from_env, model_from_env,
+             effective_base_url, effective_model}
+    """
+    return {"ok": True, **_llm_status()}
+
 
 # ── Shared LLM config model ────────────────────────────────────────────────────
 class LLMConfigPayload(BaseModel):
