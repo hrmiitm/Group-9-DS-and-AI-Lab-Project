@@ -2,6 +2,10 @@
 
 FraudGuard is an AI-powered fake job posting detector. It uses 13 investigative tools (WHOIS, email/phone validation, DuckDuckGo search, Wikipedia, social profiles, job boards, website content extraction) plus a fine-tuned RoBERTa classifier and a 5-step LLM pipeline to produce a structured fraud-risk report for any job description.
 
+<p align="center">
+  <img src="docs/infographics/fraudguard_overview.png" alt="FraudGuard Overview" width="700">
+</p>
+
 ---
 
 ## Architecture Overview
@@ -839,6 +843,46 @@ All LLM endpoints accept an optional `llm_config` block to override the server's
 | `phone_check` | contact | Phone number parsing and validation |
 | `roberta_classifier` | ml_model | Fine-tuned RoBERTa fraud classifier (threshold: 0.87) |
 | `company_registry` | company | Company registry lookup *(stub — not yet implemented)* |
+
+### Tool Categories
+
+```mermaid
+mindmap
+  root((FraudGuard Tools))
+    Text Analysis
+      scam_signals
+        Keyword patterns
+        Red flag scoring
+    Contact Verification
+      email_verify
+        Syntax + MX
+      domain_reputation
+        WHOIS age
+      phone_check
+        Format + carrier
+    Website Analysis
+      website_verify
+        HTTP + SSL
+      website_content
+        Trafilatura extract
+    Company Intelligence
+      company_wikipedia
+        Wikipedia API
+      company_web_search
+        DuckDuckGo
+      company_news
+        Recent articles
+      social_profiles
+        7 platforms
+      job_boards
+        Cross-listing
+      company_registry
+        MCA lookup
+    ML Model
+      roberta_classifier
+        125M params
+        Threshold 0.87
+```
 
 ---
 
