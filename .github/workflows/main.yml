@@ -29,7 +29,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11'
 
     # ─────────────────────────────────────────────
     # 3. Cache dependencies (FASTER CI)
@@ -45,7 +45,11 @@ jobs:
     # ─────────────────────────────────────────────
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
+        # Filter out GPU-only packages that fail on CPU CI runners
+        grep -viE '^(nvidia|cuda-|triton|pycurl)' requirements.txt > requirements-ci.txt
+        # Replace torch with CPU-only variant
+        sed -i 's/^torch==.*/torch/' requirements-ci.txt
+        pip install -r requirements-ci.txt
         pip install kaggle
 
     # ─────────────────────────────────────────────
@@ -89,7 +93,7 @@ jobs:
     # ─────────────────────────────────────────────
     - name: Run pipeline demo
       run: |
-        python src/pipeline_demo.py
+        python testing_work/src/pipeline_demo.py
 
     # ─────────────────────────────────────────────
     # 10. Success message
