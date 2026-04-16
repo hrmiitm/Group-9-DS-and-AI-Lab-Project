@@ -16,6 +16,16 @@ export default function FinalReport({ verdict, report, isLoading }) {
 
   const cfg = VERDICT_CONFIG[verdict] || VERDICT_CONFIG['SUSPICIOUS']
 
+  // Defensively strip any leading VERDICT: line the backend might return
+  // (backend now strips it, but this guards against cached/older responses)
+  const strippedReport = (() => {
+    if (!report) return ''
+    const lines = report.split('\n')
+    if (!lines[0]?.toUpperCase().startsWith('VERDICT:')) return report
+    const rest = lines.slice(1)
+    return (rest[0]?.trim() === '' ? rest.slice(1) : rest).join('\n')
+  })()
+
   return (
     <div className={`${styles.wrapper} card fade-in`}>
       {isLoading ? (
@@ -36,7 +46,7 @@ export default function FinalReport({ verdict, report, isLoading }) {
             <span className={`badge ${cfg.badge} ${styles.verdictBadge}`}>{verdict}</span>
           </div>
 
-          {report && (
+          {strippedReport && (
             <div className={styles.reportBody}>
               <ReactMarkdown
                 components={{
@@ -50,7 +60,7 @@ export default function FinalReport({ verdict, report, isLoading }) {
                   hr: () => <hr />,
                 }}
               >
-                {report}
+                {strippedReport}
               </ReactMarkdown>
             </div>
           )}

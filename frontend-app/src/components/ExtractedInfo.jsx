@@ -30,7 +30,7 @@ function FieldRow({ label, value, source }) {
     <div className={styles.row}>
       <span className={styles.fieldLabel}>{label}</span>
       <div className={styles.fieldValue}>
-        <span>{display}</span>
+        <span className={styles.fieldValueText}>{display}</span>
         {source && (
           <span className={`badge badge-info ${styles.sourceBadge}`}>{source}</span>
         )}

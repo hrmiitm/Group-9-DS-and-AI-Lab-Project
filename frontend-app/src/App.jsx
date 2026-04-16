@@ -176,7 +176,9 @@ function AppInner() {
             result?.result || result,
             extracted, infCfg
           )
-          if (inf?.ok) inferences[name] = inf.bullets?.join(' | ') || inf.inference || ''
+          if (inf?.ok) inferences[name] = inf.bullets?.length
+            ? inf.bullets.map(b => `• ${b}`).join('\n')
+            : (inf.inference || '')
         } catch (_) {}
         setToolInferences({ ...inferences })
       })

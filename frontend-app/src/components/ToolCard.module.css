@@ -9,8 +9,8 @@
   transition: var(--transition);
 }
 .card:hover { border-color: var(--border-hover); }
-.cardDone  { border-left: 3px solid var(--safe); }
-.cardError { border-left: 3px solid var(--fake); }
+.cardDone  { border-left: 3px solid var(--safe);  box-shadow: -2px 0 12px rgba(16,185,129,0.12); }
+.cardError { border-left: 3px solid var(--fake);  box-shadow: -2px 0 12px rgba(239,68,68,0.12); }
 
 .header {
   display: flex;
@@ -109,7 +109,9 @@
   font-weight: 700;
 }
 
-.infError { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.infError    { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.infFallback { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 
 .rawSection { display: flex; flex-direction: column; gap: 6px; }
 .rawToggle  { align-self: flex-start; }
+.rawActions { display: flex; align-items: center; gap: 6px; }

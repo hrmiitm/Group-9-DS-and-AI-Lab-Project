@@ -24,10 +24,11 @@ app = FastAPI(
     title="FraudGuard Backend API",
     description=(
         "Modular API for fake job posting detection. "
-        "Provides 13 investigative tools + 4 LangChain LLM services. "
+        "Provides 13 investigative tools + 4 LangChain LLM services "
+        "(openai/gpt-4.1-mini via AIPipe). "
         "Deployed on HuggingFace Spaces."
     ),
-    version="1.0.0",
+    version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -54,7 +55,7 @@ async def root():
     return {
         "status":       "ok",
         "service":      "FraudGuard Backend API",
-        "version":      "1.0.0",
+        "version":      "1.1.0",
         "docs":         "/docs",
         "llm_settings": llm_settings_available(),
     }

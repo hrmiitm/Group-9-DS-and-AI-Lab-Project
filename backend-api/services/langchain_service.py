@@ -321,11 +321,11 @@ async def final_summary(
 
     try:
         response = await llm.ainvoke(messages)
-        report = response.content.strip()
+        full_text = response.content.strip()
 
-        # Extract verdict from first line
+        # 1. Extract verdict from original full text (before stripping)
         verdict = "SUSPICIOUS"
-        for line in report.split("\n"):
+        for line in full_text.split("\n"):
             if line.upper().startswith("VERDICT:"):
                 raw_verdict = line.split(":", 1)[1].strip().upper()
                 if "FAKE" in raw_verdict or "FRAUDULENT" in raw_verdict:
@@ -335,6 +335,15 @@ async def final_summary(
                 else:
                     verdict = "SUSPICIOUS"
                 break
+
+        # 2. Strip VERDICT line + optional blank line so report body is clean
+        #    (frontend renders verdict separately in the banner)
+        report_lines = full_text.split("\n")
+        if report_lines and report_lines[0].upper().startswith("VERDICT:"):
+            report_lines = report_lines[1:]
+            if report_lines and report_lines[0].strip() == "":
+                report_lines = report_lines[1:]
+        report = "\n".join(report_lines)
 
         return {"ok": True, "verdict": verdict, "report": report}
     except Exception as e:

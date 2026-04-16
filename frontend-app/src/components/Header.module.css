@@ -40,3 +40,16 @@
 }
 
 .nav { display: flex; align-items: center; gap: 8px; }
+
+/* Very narrow screens — allow logo and nav to wrap */
+@media (max-width: 400px) {
+  .inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    gap: 8px;
+  }
+  .logo { flex: 1 1 auto; }
+  .nav  { flex: 0 0 auto; }
+}

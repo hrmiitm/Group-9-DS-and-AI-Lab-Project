@@ -5,7 +5,7 @@ LLM configuration with environment-variable-first, request-fallback pattern.
 Priority:
   1. OS environment variables (set in HuggingFace Spaces secrets)
   2. Per-request override from request body (llm_config field in payload)
-  3. Hard defaults (aipipe proxy, gpt-4o-mini)
+  3. Hard defaults (aipipe proxy, gpt-4.1-mini)
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 # ── Hard defaults ──────────────────────────────────────────────────────────────
 DEFAULT_BASE_URL = "https://aipipe.org/openrouter/v1"
-DEFAULT_MODEL    = "openai/gpt-4o-mini"
+DEFAULT_MODEL    = "openai/gpt-4.1-mini"
 DEFAULT_TEMP     = 0.3
 
 
