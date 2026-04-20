@@ -2,7 +2,7 @@
 title: FraudGuard RoBERTa API
 emoji: 🛡️
 colorFrom: red
-colorTo: orange
+colorTo: blue
 sdk: docker
 pinned: false
 license: mit
