@@ -603,15 +603,20 @@
     }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    // ── SPA navigation handler ────────────────────────────────
+    // ── SPA navigation handler (debounced — LinkedIn mutates DOM constantly) ──
     let lastUrl = location.href;
+    let navDebounce = null;
     new MutationObserver(() => {
-        if (location.href !== lastUrl) {
-            lastUrl = location.href;
-            removeOverlay();
-            setTimeout(injectButton, 1500);
-        }
-    }).observe(document.body, { subtree: true, childList: true });
+        if (navDebounce) return;                   // already scheduled, skip
+        navDebounce = setTimeout(() => {
+            navDebounce = null;
+            if (location.href !== lastUrl) {
+                lastUrl = location.href;
+                removeOverlay();
+                setTimeout(injectButton, 1500);
+            }
+        }, 500);                                    // check at most once per 500ms
+    }).observe(document.body, { childList: true }); // childList only (no subtree)
 
     // ── Init ──────────────────────────────────────────────────
     injectButton();
