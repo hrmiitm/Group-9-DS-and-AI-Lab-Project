@@ -391,7 +391,7 @@
             }
 
             updateProgress(4, 4, "Complete!");
-            renderResults(verdict, report, toolResults);
+            renderResults(verdict, report, toolResults, jobData.company || "");
 
         } catch (err) {
             console.error("[FG v2]", err);
@@ -464,6 +464,37 @@
         document.getElementById("fg-progress-modal")?.remove();
     }
 
+    // ── Sassy insight line generator ─────────────────────────
+    function buildInsight(verdict, company, rob, scam) {
+        const co   = company ? `<strong class="fg-insight-company">${escapeHtml(company)}</strong>` : "This job posting";
+        const pct  = rob  ? Math.round((rob.fraud_probability || 0) * 100) : null;
+        const risk = scam ? (scam.risk_level || "").toLowerCase() : null;
+
+        if (verdict === "SAFE") {
+            const lines = [
+                `${co} looks legitimate. Our AI ran ${pct !== null ? `a <strong>${pct}% fraud probability</strong> through RoBERTa` : "13 deep checks"} and found no significant red flags — you're good to apply.`,
+                `${co} passes our 13-tool verification. ML fraud score is a clean <strong>${pct ?? "low"}%</strong> with ${risk || "low"} scam signals. Looks like a real opportunity.`,
+                `All clear on ${co}. Scam signals are <strong>${risk || "low"}</strong> and the ML model gave it a fraud score of just <strong>${pct ?? "—"}%</strong>. Go ahead — this one checks out.`,
+            ];
+            return lines[Math.floor(Math.random() * lines.length)];
+        }
+        if (verdict === "SUSPICIOUS") {
+            const lines = [
+                `${co} raised a few eyebrows. Fraud probability sits at <strong>${pct ?? "moderate"}%</strong> with <strong>${risk || "medium"}</strong> scam signals — not a definitive red flag, but dig deeper before applying.`,
+                `Something feels off about ${co}. Our ML model scored it <strong>${pct ?? "moderate"}%</strong> fraud likelihood. We'd recommend verifying the company before sharing any personal info.`,
+                `${co} is a maybe. Scam signals are <strong>${risk || "medium"}</strong> and fraud probability is <strong>${pct ?? "moderate"}%</strong>. Research the company independently before proceeding.`,
+            ];
+            return lines[Math.floor(Math.random() * lines.length)];
+        }
+        // LIKELY_FAKE
+        const lines = [
+            `🚨 Stay away from ${co}. Fraud probability is <strong>${pct ?? "high"}%</strong> with <strong>${risk || "high"}</strong> scam signals. Multiple red flags detected — do not share personal information.`,
+            `${co} is almost certainly a scam. Our RoBERTa model flagged it at <strong>${pct ?? "high"}%</strong> fraud probability. The scam pattern score is <strong>${risk || "high"}</strong>. Proceed with extreme caution.`,
+            `This is a red alert for ${co}. <strong>${pct ?? "high"}% fraud probability</strong> + <strong>${risk || "high"}</strong> scam signals = classic fraudulent job posting. Don't apply.`,
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
+    }
+
     // ── UI: Error display ─────────────────────────────────────
     function showError(msg) {
         hideProgressModal();
@@ -471,35 +502,75 @@
         const overlay = document.createElement("div");
         overlay.id = "fg-overlay";
         overlay.innerHTML = `
-      <div class="fg-overlay-header fg-error">
-        <div class="fg-verdict-left">
-          <span class="fg-verdict-icon">⚠️</span>
-          <div>
-            <div class="fg-verdict-text" style="color:#fcd34d">Analysis Failed</div>
-            <div class="fg-verdict-sub">FraudGuard v2</div>
-          </div>
+      <div class="fg-hero fg-hero-error">
+        <div class="fg-hero-top">
+          <span class="fg-badge" style="background:rgba(239,68,68,0.15);border-color:rgba(248,113,113,0.4);color:#f87171">
+            <span class="fg-badge-icon">⚠️</span> Analysis Failed
+          </span>
+          <button class="fg-close-btn" id="fg-close-btn">✕</button>
         </div>
-        <button class="fg-close-btn" id="fg-close-btn">✕</button>
+        <div class="fg-insight" style="font-size:13px;color:#94a3b8">
+          Something went wrong while analyzing this job posting.
+        </div>
       </div>
-      <div class="fg-error-msg">${escapeHtml(msg)}</div>
-      <div class="fg-config-hint">💡 Click the 🛡️ icon in your browser toolbar to verify the Backend URL is set to:<br><strong>https://hrmhrmhrm-company-backend-api.hf.space</strong></div>`;
+      <div class="fg-error-body">
+        <div class="fg-error-msg">${escapeHtml(msg)}</div>
+        <div class="fg-config-hint">💡 Click the <strong>🛡️</strong> icon in the browser toolbar and verify the Backend URL is:<br><strong>https://hrmhrmhrm-company-backend-api.hf.space</strong></div>
+      </div>
+      <div class="fg-footer"><span class="fg-footer-text">FraudGuard v2</span><span class="fg-footer-dot"></span><span class="fg-footer-text">Powered by RoBERTa + GPT</span></div>`;
         document.body.appendChild(overlay);
-        document.getElementById("fg-close-btn").addEventListener("click", () => { removeOverlay(); });
+        document.getElementById("fg-close-btn").addEventListener("click", () => removeOverlay());
     }
 
     // ── UI: Results overlay ───────────────────────────────────
-    function renderResults(verdict, report, toolResults) {
+    function renderResults(verdict, report, toolResults, company) {
         hideProgressModal();
         removeOverlay();
 
-        const vc = {
-            SAFE:        { icon: "✅", label: "SAFE",        cls: "fg-safe",  bg: "fg-safe-bg" },
-            SUSPICIOUS:  { icon: "⚠️",  label: "SUSPICIOUS",  cls: "fg-suspicious", bg: "fg-suspicious-bg" },
-            LIKELY_FAKE: { icon: "❌", label: "LIKELY FAKE", cls: "fg-fake",  bg: "fg-fake-bg" },
-        }[verdict] || { icon: "⚠️", label: verdict, cls: "fg-suspicious", bg: "fg-suspicious-bg" };
+        const rob  = toolResults.roberta_classifier;
+        const scam = toolResults.scam_signals;
 
+        // Verdict config
+        const vMap = {
+            SAFE:        { badge: "fg-badge-safe",  hero: "fg-hero-safe",  icon: "✅", label: "SAFE"        },
+            SUSPICIOUS:  { badge: "fg-badge-warn",  hero: "fg-hero-warn",  icon: "⚠️", label: "SUSPICIOUS"  },
+            LIKELY_FAKE: { badge: "fg-badge-fake",  hero: "fg-hero-fake",  icon: "🚨", label: "LIKELY FAKE" },
+        };
+        const vc = vMap[verdict] || vMap["SUSPICIOUS"];
+
+        // Insight class for company colour
+        const insightCls = verdict === "SAFE" ? "fg-insight-safe" : verdict === "LIKELY_FAKE" ? "fg-insight-fake" : "fg-insight-warn";
+
+        // Score colors
+        const fraudPct  = rob  ? Math.round((rob.fraud_probability  || 0) * 100) : null;
+        const scamScore = scam ? (scam.scam_score || 0) : null;
+        const robBarCls  = fraudPct === null ? "" : fraudPct >= 70 ? "fg-meter-bar-danger" : fraudPct >= 40 ? "fg-meter-bar-warn" : "fg-meter-bar-safe";
+        const robValCls  = fraudPct === null ? "" : fraudPct >= 70 ? "fg-color-danger"     : fraudPct >= 40 ? "fg-color-warn"     : "fg-color-safe";
+        const scamBarCls = scam?.risk_level === "HIGH" ? "fg-meter-bar-danger" : scam?.risk_level === "MEDIUM" ? "fg-meter-bar-warn" : "fg-meter-bar-safe";
+        const scamValCls = scam?.risk_level === "HIGH" ? "fg-color-danger"     : scam?.risk_level === "MEDIUM" ? "fg-color-warn"     : "fg-color-safe";
+
+        // Meters HTML
+        const metersHtml = (fraudPct !== null || scamScore !== null) ? `
+        <div class="fg-meters">
+          ${fraudPct !== null ? `
+          <div class="fg-meter">
+            <div class="fg-meter-label">ML Fraud Score</div>
+            <div class="fg-meter-bar-track"><div class="fg-meter-bar-fill ${robBarCls}" style="width:${fraudPct}%"></div></div>
+            <div class="fg-meter-value ${robValCls}">${fraudPct}%</div>
+            <div class="fg-meter-desc">${fraudPct >= 70 ? "High risk" : fraudPct >= 40 ? "Moderate risk" : "Low risk"}</div>
+          </div>` : ""}
+          ${scamScore !== null ? `
+          <div class="fg-meter">
+            <div class="fg-meter-label">Scam Signals</div>
+            <div class="fg-meter-bar-track"><div class="fg-meter-bar-fill ${scamBarCls}" style="width:${Math.min(scamScore, 100)}%"></div></div>
+            <div class="fg-meter-value ${scamValCls}">${scam.risk_level || "LOW"}</div>
+            <div class="fg-meter-desc">Score: ${scamScore}/100</div>
+          </div>` : ""}
+        </div>` : "";
+
+        // Tool grid
         const toolMeta = {
-            scam_signals:       { icon: "🚨", label: "Scam Signals" },
+            scam_signals:       { icon: "🚨", label: "Scam Scan" },
             roberta_classifier: { icon: "🤖", label: "ML Model" },
             email_verify:       { icon: "📧", label: "Email" },
             domain_reputation:  { icon: "🌐", label: "Domain" },
@@ -512,54 +583,88 @@
             job_boards:         { icon: "📋", label: "Job Boards" },
             phone_check:        { icon: "📞", label: "Phone" },
         };
+        const toolEntries = Object.entries(toolResults).filter(([n]) => toolMeta[n]);
+        const toolCardsHtml = toolEntries.map(([n, r]) => {
+            const m    = toolMeta[n];
+            const isErr = r?.error;
+            const isBad = r?.is_fraud || r?.risk_level === "HIGH" || r?.verdict === "FRAUDULENT";
+            const cls   = isErr ? "fg-tool-skip" : isBad ? "fg-tool-fail" : "fg-tool-pass";
+            const lbl   = isErr ? "—" : isBad ? "ALERT" : "CLEAR";
+            return `<div class="fg-tool-card ${cls}" title="${escapeHtml(n)}">
+              <span class="fg-tool-icon">${m.icon}</span>
+              <span class="fg-tool-name">${m.label}</span>
+              <span class="fg-tool-status">${lbl}</span>
+            </div>`;
+        }).join("");
 
-        const toolCardsHtml = Object.entries(toolResults)
-            .filter(([n]) => toolMeta[n])
-            .map(([n, r]) => {
-                const m = toolMeta[n];
-                const isErr   = r?.error;
-                const isBad   = r?.is_fraud || r?.risk_level === "HIGH" || r?.verdict === "FRAUDULENT";
-                const cls     = isErr ? "fg-tool-skip" : isBad ? "fg-tool-fail" : "fg-tool-pass";
-                const icon    = isErr ? "—" : isBad ? "✕" : "✓";
-                return `<div class="fg-tool-card ${cls}" title="${escapeHtml(n)}"><span class="fg-tool-icon">${m.icon}</span><span class="fg-tool-name">${m.label}</span><span class="fg-tool-status">${icon}</span></div>`;
-            }).join("");
-
-        const rob  = toolResults.roberta_classifier;
-        const scam = toolResults.scam_signals;
-        const robHtml  = rob  ? `<div class="fg-stat"><span class="fg-stat-label">ML Fraud Score</span><span class="fg-stat-value ${rob.is_fraud ? "fg-stat-danger" : "fg-stat-ok"}">${Math.round((rob.fraud_probability || 0) * 100)}%</span></div>` : "";
-        const scamHtml = scam ? `<div class="fg-stat"><span class="fg-stat-label">Scam Signals</span><span class="fg-stat-value fg-stat-${scam.risk_level === "HIGH" ? "danger" : scam.risk_level === "MEDIUM" ? "warn" : "ok"}">${scam.risk_level || "N/A"} (${scam.scam_score || 0})</span></div>` : "";
-
-        const summary = (report || "").split("\n").filter(l => l.trim() && !l.startsWith("#")).slice(0, 3).join(" ").substring(0, 400);
+        // Key findings from report (extract bullet points)
+        const findingLines = (report || "").split("\n")
+            .filter(l => (l.startsWith("- ") || l.startsWith("* ")) && l.length > 10)
+            .slice(0, 4);
+        const findingsHtml = findingLines.length > 0 ? `
+        <div class="fg-section">
+          <div class="fg-section-header">
+            <span class="fg-section-title">Key Findings</span>
+          </div>
+          <div class="fg-findings">
+            ${findingLines.map((l, i) => {
+                const text = l.slice(2).trim();
+                const dot  = verdict === "LIKELY_FAKE" ? "fg-finding-red" : i === 0 && verdict === "SAFE" ? "fg-finding-green" : "fg-finding-yellow";
+                return `<div class="fg-finding-item ${dot}"><div class="fg-finding-dot"></div><span>${escapeHtml(text)}</span></div>`;
+            }).join("")}
+          </div>
+        </div>` : "";
 
         const overlay = document.createElement("div");
         overlay.id = "fg-overlay";
         overlay.innerHTML = `
-      <div class="fg-overlay-header ${vc.bg}">
-        <div class="fg-verdict-left">
-          <span class="fg-verdict-icon">${vc.icon}</span>
-          <div>
-            <div class="fg-verdict-text ${vc.cls}">${vc.label}</div>
-            <div class="fg-verdict-sub">FraudGuard v2 Analysis</div>
-          </div>
+      <!-- Hero -->
+      <div class="fg-hero ${vc.hero}">
+        <div class="fg-hero-top">
+          <span class="fg-badge ${vc.badge}">
+            <span class="fg-badge-icon">${vc.icon}</span>${vc.label}
+          </span>
+          <button class="fg-close-btn" id="fg-close-btn">✕</button>
         </div>
-        <button class="fg-close-btn" id="fg-close-btn">✕</button>
+        <div class="fg-insight ${insightCls}">
+          ${buildInsight(verdict, company, rob, scam)}
+        </div>
       </div>
 
-      ${(robHtml || scamHtml) ? `<div class="fg-stats-row">${robHtml}${scamHtml}</div>` : ""}
+      <!-- Score meters -->
+      ${metersHtml}
 
-      ${toolCardsHtml ? `<div class="fg-section"><div class="fg-section-title">Investigation Tools (${Object.keys(toolResults).length} ran)</div><div class="fg-tool-grid">${toolCardsHtml}</div></div>` : ""}
+      <!-- Tool grid -->
+      ${toolCardsHtml ? `
+      <div class="fg-section">
+        <div class="fg-section-header">
+          <span class="fg-section-title">Investigation Tools</span>
+          <span class="fg-section-count">${toolEntries.length} ran</span>
+        </div>
+        <div class="fg-tool-grid">${toolCardsHtml}</div>
+      </div>` : ""}
 
-      ${summary ? `<div class="fg-section"><div class="fg-section-title">Summary</div><div class="fg-summary-text">${escapeHtml(summary)}</div></div>` : ""}
+      <!-- Key findings -->
+      ${findingsHtml}
 
-      ${report ? `<div class="fg-section">
+      <!-- Full report toggle -->
+      ${report ? `
+      <div class="fg-section">
         <button class="fg-toggle-btn" id="fg-report-toggle">
           <span id="fg-report-label">📋 Show Full Report</span>
-          <span id="fg-toggle-arrow">▼</span>
+          <span class="fg-toggle-arrow" id="fg-toggle-arrow">▼</span>
         </button>
         <div id="fg-report-content" style="display:none">
           <div class="fg-report-text" id="fg-report-text"></div>
         </div>
-      </div>` : ""}`;
+      </div>` : ""}
+
+      <!-- Footer -->
+      <div class="fg-footer">
+        <span class="fg-footer-text">FraudGuard v2</span>
+        <span class="fg-footer-dot"></span>
+        <span class="fg-footer-text">RoBERTa + 13 Tools + GPT</span>
+      </div>`;
 
         document.body.appendChild(overlay);
 
@@ -570,11 +675,11 @@
                 const content = document.getElementById("fg-report-content");
                 const arrow   = document.getElementById("fg-toggle-arrow");
                 const lbl     = document.getElementById("fg-report-label");
-                const open = content.style.display === "none";
+                const open    = content.style.display === "none";
                 content.style.display = open ? "block" : "none";
                 if (open) document.getElementById("fg-report-text").innerHTML = mdToHtml(report);
-                arrow.textContent = open ? "▲" : "▼";
-                lbl.textContent   = open ? "📋 Hide Full Report" : "📋 Show Full Report";
+                arrow.style.transform = open ? "rotate(180deg)" : "rotate(0deg)";
+                lbl.textContent = open ? "📋 Hide Full Report" : "📋 Show Full Report";
             });
         }
     }
