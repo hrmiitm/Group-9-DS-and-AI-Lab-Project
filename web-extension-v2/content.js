@@ -13,8 +13,8 @@
 
     // ── Config ────────────────────────────────────────────────
     function getConfig() {
-        return new Promise((resolve) => {
-            chrome.storage.local.get(
+        return new Promise((resolve, reject) => {
+            try { chrome.storage.local.get(
                 ["backendUrl", "llmApiKey", "llmBaseUrl", "llmModel"],
                 (result) => {
                     let url = result.backendUrl || DEFAULT_BACKEND;
@@ -30,7 +30,7 @@
                         llmModel:    result.llmModel   || null,
                     });
                 }
-            );
+            ); } catch (e) { reject(e); }
         });
     }
 
@@ -395,7 +395,12 @@
 
         } catch (err) {
             console.error("[FG v2]", err);
-            showError(err.message || "Unknown error.");
+            const msg = (err.message || "").toLowerCase();
+            if (msg.includes("extension context invalidated") || msg.includes("context invalidated")) {
+                showError("Please refresh this LinkedIn page (Cmd+R / F5).\n\nThe extension was reloaded — a page refresh reconnects it.");
+            } else {
+                showError(err.message || "Unknown error.");
+            }
         }
     }
 
