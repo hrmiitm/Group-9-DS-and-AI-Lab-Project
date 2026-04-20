@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FraudGuard v2</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="popup-logo">🛡️</div>
+      <div class="popup-title-group">
+        <div class="popup-title">FraudGuard v2</div>
+        <div class="popup-subtitle">LinkedIn Job Fraud Detector</div>
+      </div>
+    </div>
+
+    <!-- Status indicator -->
+    <div class="status-bar" id="status-bar">
+      <span class="status-dot" id="status-dot"></span>
+      <span class="status-text" id="status-text">Checking connection...</span>
+    </div>
+
+    <!-- Backend URL -->
+    <div class="form-group">
+      <label class="form-label" for="backend-url">
+        Backend API URL
+        <span class="label-required">*</span>
+      </label>
+      <div class="input-row">
+        <input
+          type="text"
+          id="backend-url"
+          class="form-input"
+          placeholder="https://hrmhrmhrm-company-backend-api.hf.space"
+          spellcheck="false"
+        />
+        <button class="icon-btn" id="test-btn" title="Test connection">⚡</button>
+      </div>
+      <div class="form-hint">
+        Your deployed backend URL (HuggingFace Spaces or local)
+      </div>
+    </div>
+
+    <!-- LLM API Key (optional) -->
+    <div class="form-group">
+      <label class="form-label" for="llm-api-key">
+        LLM API Key
+        <span class="label-optional">optional</span>
+      </label>
+      <div class="input-row">
+        <input
+          type="password"
+          id="llm-api-key"
+          class="form-input"
+          placeholder="sk-... or aipipe token"
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <button class="icon-btn" id="toggle-key-btn" title="Show/hide">👁️</button>
+      </div>
+      <div class="form-hint">
+        Only needed if backend has no server-side API key configured
+      </div>
+    </div>
+
+    <!-- Advanced settings (collapsible) -->
+    <div class="advanced-toggle" id="advanced-toggle">
+      Advanced Settings <span id="advanced-arrow">▼</span>
+    </div>
+    <div class="advanced-section" id="advanced-section" style="display:none">
+      <div class="form-group">
+        <label class="form-label" for="llm-base-url">LLM Base URL</label>
+        <input
+          type="text"
+          id="llm-base-url"
+          class="form-input"
+          placeholder="https://aipipe.org/openrouter/v1"
+          spellcheck="false"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="llm-model">LLM Model</label>
+        <input
+          type="text"
+          id="llm-model"
+          class="form-input"
+          placeholder="openai/gpt-4.1-mini"
+          spellcheck="false"
+        />
+      </div>
+    </div>
+
+    <!-- Save button -->
+    <button class="save-btn" id="save-btn">
+      <span class="btn-text">Save Settings</span>
+    </button>
+
+    <!-- Footer -->
+    <div class="popup-footer">
+      <span>How to use:</span> Open a LinkedIn job listing and click the <strong>🛡️ FraudGuard</strong> button.
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
