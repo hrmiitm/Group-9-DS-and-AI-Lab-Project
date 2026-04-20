@@ -9,8 +9,12 @@
 
 import { BaseTool, ToolResult } from "../lib/langchain-core.js";
 
+// const HF_MODEL_URL =
+//     "https://api-inference.huggingface.co/models/aditya963/fraud-job-classifier";
+
 const HF_MODEL_URL =
-    "https://api-inference.huggingface.co/models/aditya963/fraud-job-classifier";
+    "https://huggingface.co/spaces/arun-1988/Fraudguard_model_api";
+
 
 // Fraud probability threshold — matches the value used during training
 const FRAUD_THRESHOLD = 0.87;
@@ -111,7 +115,7 @@ export class RoBERTaTool extends BaseTool {
                 Authorization: `Bearer ${hfApiKey}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ inputs: standardizedText }),
+            body: JSON.stringify({ description: standardizedText }),
         });
 
         if (!response.ok) {
