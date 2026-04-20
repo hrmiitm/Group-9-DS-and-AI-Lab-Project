@@ -275,18 +275,96 @@
         return d;
     }
 
+    // ── Weighted multi-signal verdict using ALL tool results ──
+    // Returns { verdict, score, signals, method }
     function heuristicVerdict(toolResults) {
+        let score   = 0;   // 0-100, higher = more fraudulent
+        const signals = []; // human-readable evidence collected
+
+        // ── RoBERTa ML model (weight: 40 pts max) ─────────────
         const rob = toolResults.roberta_classifier;
-        if (rob?.is_fraud || rob?.fraud_probability >= 0.87) return "LIKELY_FAKE";
-        if (rob?.fraud_probability >= 0.5) return "SUSPICIOUS";
+        if (rob) {
+            const pct = Math.round((rob.fraud_probability || 0) * 100);
+            const robScore = Math.round((rob.fraud_probability || 0) * 40);
+            score += robScore;
+            if (pct >= 70)      signals.push(`ML model flagged this at ${pct}% fraud probability`);
+            else if (pct >= 40) signals.push(`ML model gave a moderate ${pct}% fraud probability`);
+            else                signals.push(`ML model shows low ${pct}% fraud probability`);
+        }
+
+        // ── Scam signal keywords (weight: 25 pts max) ─────────
         const scam = toolResults.scam_signals;
-        if (scam?.risk_level === "HIGH")   return "LIKELY_FAKE";
-        if (scam?.risk_level === "MEDIUM") return "SUSPICIOUS";
-        return "SAFE";
+        if (scam) {
+            if (scam.risk_level === "HIGH")        { score += 25; signals.push(`High-risk scam keywords detected (score: ${scam.scam_score}/100)`); }
+            else if (scam.risk_level === "MEDIUM") { score += 12; signals.push(`Moderate scam keyword score (${scam.scam_score}/100)`); }
+            else                                   { signals.push(`Low scam keyword score (${scam.scam_score}/100)`); }
+        }
+
+        // ── Domain reputation (weight: 15 pts max) ─────────────
+        const domain = toolResults.domain_reputation;
+        if (domain && !domain.error) {
+            const ageDays = domain.domain_age_days ?? 9999;
+            if (ageDays < 30)        { score += 15; signals.push(`Domain registered only ${ageDays} days ago — very suspicious`); }
+            else if (ageDays < 180)  { score += 8;  signals.push(`Domain is relatively new (${ageDays} days old)`); }
+            if (domain.risk_level === "HIGH") { score += 5; signals.push("Domain has a high reputation risk score"); }
+        }
+
+        // ── Website check (weight: 8 pts max) ──────────────────
+        const site = toolResults.website_verify;
+        if (site && !site.error) {
+            if (!site.is_live)    { score += 8; signals.push("Company website is unreachable or down"); }
+            else if (!site.ssl_valid) { score += 4; signals.push("Company website has no valid SSL certificate"); }
+        }
+
+        // ── Social profiles (weight: 8 pts max) ────────────────
+        const social = toolResults.social_profiles;
+        if (social && !social.error) {
+            const found = social.platforms_found || 0;
+            if (found === 0)     { score += 8; signals.push("No social media presence found for this company"); }
+            else if (found <= 1) { score += 3; signals.push(`Only ${found} social media profile found`); }
+            else                 { signals.push(`Found on ${found} social platforms — positive signal`); }
+        }
+
+        // ── Job board cross-reference (weight: 6 pts max) ──────
+        const boards = toolResults.job_boards;
+        if (boards && !boards.error) {
+            if (!boards.boards_found || boards.boards_found === 0) {
+                score += 6;
+                signals.push("Job not found on any major job boards (Indeed, LinkedIn, etc.)");
+            } else {
+                signals.push(`Job verified on ${boards.boards_found} job board(s) — positive signal`);
+            }
+        }
+
+        // ── Wikipedia check (weight: 4 pts max) ────────────────
+        const wiki = toolResults.company_wikipedia;
+        if (wiki && !wiki.error) {
+            if (!wiki.extract)  { score += 4; signals.push("Company has no Wikipedia presence"); }
+            else                { signals.push("Company found on Wikipedia — legitimacy confirmed"); }
+        }
+
+        // ── News presence (weight: 4 pts max) ──────────────────
+        const news = toolResults.company_news;
+        if (news && !news.error) {
+            if (!news.total_articles || news.total_articles === 0) {
+                score += 4;
+                signals.push("No news coverage found for this company");
+            } else {
+                signals.push(`Found ${news.total_articles} news article(s) — media presence detected`);
+            }
+        }
+
+        // ── Derive verdict from total score ────────────────────
+        let verdict;
+        if      (score >= 55) verdict = "LIKELY_FAKE";
+        else if (score >= 30) verdict = "SUSPICIOUS";
+        else                  verdict = "SAFE";
+
+        return { verdict, score, signals };
     }
 
-    function heuristicReport(jobData, toolResults, verdict) {
-        const lines = [`## Fraud Risk Assessment: ${verdict}`, ""];
+    function heuristicReport(jobData, toolResults, verdict, signals = [], score = 0) {
+        const lines = [`## Fraud Risk Assessment: ${verdict}  (score: ${score}/100)`, ""];
         const rob = toolResults.roberta_classifier;
         if (rob) {
             lines.push("### ML Model (RoBERTa)");
@@ -312,8 +390,13 @@
             lines.push(`### Company News — ${news.total_articles} articles found`);
             lines.push("");
         }
+        if (signals.length) {
+            lines.push("### Signal Breakdown (All 13 Tools)");
+            signals.forEach(s => lines.push(`- ${s}`));
+            lines.push("");
+        }
         lines.push("---");
-        lines.push("*Note: LLM report skipped — showing raw tool analysis.*");
+        lines.push("*Note: LLM report skipped — showing weighted multi-signal analysis.*");
         return lines.join("\n");
     }
 
@@ -365,7 +448,8 @@
 
             // Step 3: LLM final summary
             updateProgress(3, 4, "Generating AI fraud report...");
-            let verdict = heuristicVerdict(toolResults);
+            const heuristic = heuristicVerdict(toolResults);
+            let verdict = heuristic.verdict;
             let report  = "";
             try {
                 const summaryBody = {
@@ -384,10 +468,16 @@
                 if (summaryResp.ok) {
                     verdict = summaryResp.verdict || verdict;
                     report  = summaryResp.report  || "";
+                    // Append heuristic signal breakdown to LLM report
+                    if (heuristic.signals.length) {
+                        report += "\n\n### Signal Breakdown (All Tools)\n" +
+                            heuristic.signals.map(s => `- ${s}`).join("\n") +
+                            `\n\n*Weighted fraud score: ${heuristic.score}/100*`;
+                    }
                 }
             } catch (err) {
                 console.warn("[FG v2] LLM summary skipped:", err.message);
-                report = heuristicReport(jobData, toolResults, verdict);
+                report = heuristicReport(jobData, toolResults, verdict, heuristic.signals, heuristic.score);
             }
 
             updateProgress(4, 4, "Complete!");
