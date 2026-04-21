@@ -8,13 +8,17 @@ Risk thresholds:
   180-730 days    → MEDIUM
   > 730 days      → LOW    (established domain)
 """
+<<<<<<< HEAD
 import concurrent.futures
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 import requests
 import whois
 from datetime import datetime, timezone
 
 from tools.tools_config import REQUEST_HEADERS, REQUEST_TIMEOUT
 
+<<<<<<< HEAD
 # Free email / major consumer domains — WHOIS often rate-limits or blocks.
 # Their age is always "low risk" (decades old), so skip the expensive lookup.
 _KNOWN_FREE_EMAIL_DOMAINS = frozenset({
@@ -33,6 +37,8 @@ _SKIP_LIVENESS = frozenset({
 _WHOIS_TIMEOUT = 15   # seconds for the blocking whois call
 _HTTP_TIMEOUT  = 8    # seconds for the liveness HTTP check
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
 def _pick(val):
     return val[0] if isinstance(val, list) else val
@@ -64,6 +70,7 @@ def _bare_domain(value: str) -> str:
     return v[4:] if v.startswith("www.") else v
 
 
+<<<<<<< HEAD
 def _whois_with_timeout(domain: str, timeout: int):
     """Run whois.whois() in a thread so we can enforce a hard timeout."""
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
@@ -71,6 +78,8 @@ def _whois_with_timeout(domain: str, timeout: int):
         return future.result(timeout=timeout)
 
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 def check_domain_reputation(domain_or_email: str) -> dict:
     """
     WHOIS lookup for a domain, email address, or URL.
@@ -88,6 +97,7 @@ def check_domain_reputation(domain_or_email: str) -> dict:
     else:
         domain = _bare_domain(raw)
 
+<<<<<<< HEAD
     # Fast-path: well-known free email providers are always old and trusted
     if domain in _KNOWN_FREE_EMAIL_DOMAINS:
         return {
@@ -111,6 +121,10 @@ def check_domain_reputation(domain_or_email: str) -> dict:
 
     try:
         w = _whois_with_timeout(domain, _WHOIS_TIMEOUT)
+=======
+    try:
+        w = whois.whois(domain)
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         created = _pick(getattr(w, "creation_date", None))
         expires = _pick(getattr(w, "expiration_date", None))
         updated = _pick(getattr(w, "updated_date", None))
@@ -118,6 +132,7 @@ def check_domain_reputation(domain_or_email: str) -> dict:
 
         is_live  = False
         live_url = None
+<<<<<<< HEAD
         if domain not in _SKIP_LIVENESS:
             try:
                 r = requests.get(
@@ -130,6 +145,19 @@ def check_domain_reputation(domain_or_email: str) -> dict:
                 live_url = r.url
             except Exception:
                 pass
+=======
+        try:
+            r = requests.get(
+                f"https://{domain}",
+                headers=REQUEST_HEADERS,
+                timeout=10,
+                allow_redirects=True,
+            )
+            is_live  = r.status_code < 500
+            live_url = r.url
+        except Exception:
+            pass
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
         risk = (
             "high"   if age is not None and age < 180  else
@@ -151,6 +179,7 @@ def check_domain_reputation(domain_or_email: str) -> dict:
                 "risk_level":      risk,
             },
         }
+<<<<<<< HEAD
     except concurrent.futures.TimeoutError:
         return {
             "ok": False,
@@ -158,5 +187,7 @@ def check_domain_reputation(domain_or_email: str) -> dict:
                      "The domain may be blocking WHOIS queries or the registrar is slow.",
             "data": {"domain": domain},
         }
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     except Exception as e:
         return {"ok": False, "error": str(e), "data": {"domain": domain}}

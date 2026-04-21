@@ -9,14 +9,20 @@ Device: CPU (HuggingFace Spaces free tier).
 """
 from __future__ import annotations
 
+<<<<<<< HEAD
 import glob
 import os
 import threading
+=======
+import os
+from functools import lru_cache
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 from typing import Optional
 
 MODEL_ID = os.getenv("ROBERTA_MODEL_ID", "aditya963/fraud-job-classifier")
 FRAUD_THRESHOLD = float(os.getenv("ROBERTA_THRESHOLD", "0.87"))
 
+<<<<<<< HEAD
 _pipeline_lock  = threading.Lock()
 _cached_pipeline = None   # set to (clf, None) on success; (None, err_str) on failure
 
@@ -71,6 +77,25 @@ def _load_pipeline():
             _cached_pipeline = (None, err)
 
     return _cached_pipeline
+=======
+
+@lru_cache(maxsize=1)
+def _load_pipeline():
+    """Load model once, cache forever (lru_cache on module singleton)."""
+    try:
+        from transformers import pipeline as hf_pipeline
+        clf = hf_pipeline(
+            "text-classification",
+            model=MODEL_ID,
+            device=-1,           # CPU
+            truncation=True,
+            max_length=512,
+            top_k=None,          # return all labels
+        )
+        return clf, None
+    except Exception as e:
+        return None, str(e)
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
 
 def classify_job_roberta(job_text: str, threshold: Optional[float] = None) -> dict:
@@ -88,7 +113,11 @@ def classify_job_roberta(job_text: str, threshold: Optional[float] = None) -> di
 
     clf, load_err = _load_pipeline()
     if clf is None:
+<<<<<<< HEAD
         return {"ok": False, "error": load_err}
+=======
+        return {"ok": False, "error": f"Model failed to load: {load_err}"}
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
     try:
         # Truncate to avoid token length issues (rough word-level limit)

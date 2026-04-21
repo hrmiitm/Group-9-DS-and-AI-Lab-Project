@@ -11,5 +11,9 @@ ddgs>=6.3.0
 trafilatura>=1.9.0
 phonenumbers>=8.13.36
 transformers>=4.40.0
+<<<<<<< HEAD
 torch>=2.4.0
+=======
+torch>=2.2.0
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 python-multipart>=0.0.9

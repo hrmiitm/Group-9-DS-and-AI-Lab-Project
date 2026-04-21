@@ -14,6 +14,7 @@
 
 Online recruitment fraud costs job seekers millions annually through advance-fee scams, phishing, and identity theft. This project delivers an end-to-end AI system that combines a fully fine-tuned **RoBERTa-base** transformer (125M parameters, trained with Focal Loss on the EMSCAD dataset of 17,880 job postings) with a **12-tool agentic verification pipeline** that cross-checks company domains, email addresses, phone numbers, and web presence in real-time. The model achieves **ROC-AUC 0.993** and **precision 0.957** on the fraud class. The system is accessible via a Flask web-app and a Chrome extension that works directly on LinkedIn job pages.
 
+<<<<<<< HEAD
 <p align="center">
   <img src="docs/infographics/fraudguard_overview.png" alt="FraudGuard Overview Infographic" width="700">
 </p>
@@ -31,6 +32,21 @@ Online recruitment fraud costs job seekers millions annually through advance-fee
 
 ### 1. Clone the repository
 
+=======
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- Linux/macOS (recommended; CUDA GPU optional for inference, required for training)
+- A LLM API key (OpenRouter / AIPipe / OpenAI)
+- Google Gemini API key (for the Chrome extension only)
+
+### 1. Clone the repository
+
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 ```bash
 git clone https://github.com/hrmiitm/Group-9-DS-and-AI-Lab-Project.git
 cd Group-9-DS-and-AI-Lab-Project
@@ -124,10 +140,13 @@ graph TD
 
 <!-- INSERT DEMO VIDEO LINK HERE -->
 
+<<<<<<< HEAD
 <p align="center">
   <img src="docs/infographics/fraudguard_pipeline.png" alt="FraudGuard 5-Step Pipeline" width="700">
 </p>
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 > **Web App:** Run locally at `http://localhost:5000` after following Quick Start above.
 > **Chrome Extension:** Load unpacked from `web-extension/` — see [web-extension/SETUP.md](web-extension/SETUP.md).
 
@@ -149,10 +168,13 @@ graph TD
 
 > Threshold 0.87 selected via validation-set calibration. Validation metrics at best epoch: F1=0.920, Precision=0.958, Recall=0.884.
 
+<<<<<<< HEAD
 <p align="center">
   <img src="docs/infographics/fraudguard_metrics.png" alt="FraudGuard Model Performance" width="700">
 </p>
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 **Model weights on HuggingFace Hub:** [aditya963/fraud-job-classifier](https://huggingface.co/aditya963/fraud-job-classifier)
 
 ---

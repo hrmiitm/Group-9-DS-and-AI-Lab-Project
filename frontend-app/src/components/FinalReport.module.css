@@ -13,6 +13,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+<<<<<<< HEAD
   padding: 22px 24px;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   position: relative;
@@ -31,6 +32,10 @@
   opacity: 0.07;
   background: currentColor;
   pointer-events: none;
+=======
+  padding: 18px 22px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 }
 
 .safe        { background: var(--safe-bg);        border-bottom: 2px solid var(--safe);       }
@@ -38,10 +43,17 @@
 .fake        { background: var(--fake-bg);         border-bottom: 2px solid var(--fake);       }
 
 .verdictLeft { display: flex; align-items: center; gap: 14px; }
+<<<<<<< HEAD
 .verdictIcon { font-size: 36px; }
 
 .verdictTitle { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
 .verdictLabel { font-size: 22px; font-weight: 800; color: var(--text-primary); }
+=======
+.verdictIcon { font-size: 32px; }
+
+.verdictTitle { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
+.verdictLabel { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 .verdictBadge { font-size: 12px; padding: 5px 14px; }
 
 .reportBody {
@@ -59,6 +71,7 @@
 .ul { padding-left: 20px; margin: 6px 0; display: flex; flex-direction: column; gap: 4px; }
 .li { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 .strong { color: var(--text-primary); font-weight: 600; }
+<<<<<<< HEAD
 .reportLink { color: var(--accent-light); text-decoration: underline; }
 .reportLink:hover { color: var(--accent); }
 
@@ -141,3 +154,5 @@
   color: var(--text-muted);
   line-height: 1.5;
 }
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)

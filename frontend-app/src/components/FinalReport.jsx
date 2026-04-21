@@ -11,6 +11,7 @@ const VERDICT_CONFIG = {
   LIKELY_FAKE: { icon: '❌', label: 'Likely Fake', cls: styles.fake,        badge: 'badge-fake' },
 }
 
+<<<<<<< HEAD
 const PLATFORM_ICONS = {
   linkedin:  '💼',
   twitter_x: '🐦',
@@ -22,10 +23,14 @@ const PLATFORM_ICONS = {
 }
 
 export default function FinalReport({ verdict, report, isLoading, socialLinks = null, recentPosts = null }) {
+=======
+export default function FinalReport({ verdict, report, isLoading }) {
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
   if (!verdict && !isLoading) return null
 
   const cfg = VERDICT_CONFIG[verdict] || VERDICT_CONFIG['SUSPICIOUS']
 
+<<<<<<< HEAD
   // Defensively strip any leading VERDICT: line the backend might return
   // (backend now strips it, but this guards against cached/older responses)
   const strippedReport = (() => {
@@ -36,6 +41,8 @@ export default function FinalReport({ verdict, report, isLoading, socialLinks = 
     return (rest[0]?.trim() === '' ? rest.slice(1) : rest).join('\n')
   })()
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
   return (
     <div className={`${styles.wrapper} card fade-in`}>
       {isLoading ? (
@@ -56,7 +63,11 @@ export default function FinalReport({ verdict, report, isLoading, socialLinks = 
             <span className={`badge ${cfg.badge} ${styles.verdictBadge}`}>{verdict}</span>
           </div>
 
+<<<<<<< HEAD
           {strippedReport && (
+=======
+          {report && (
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
             <div className={styles.reportBody}>
               <ReactMarkdown
                 components={{
@@ -68,6 +79,7 @@ export default function FinalReport({ verdict, report, isLoading, socialLinks = 
                   li: ({children}) => <li className={styles.li}>{children}</li>,
                   strong: ({children}) => <strong className={styles.strong}>{children}</strong>,
                   hr: () => <hr />,
+<<<<<<< HEAD
                   a: ({href, children}) => (
                     <a href={href} target="_blank" rel="noopener noreferrer" className={styles.reportLink}>
                       {children}
@@ -127,6 +139,14 @@ export default function FinalReport({ verdict, report, isLoading, socialLinks = 
               </div>
             </div>
           )}
+=======
+                }}
+              >
+                {report}
+              </ReactMarkdown>
+            </div>
+          )}
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         </>
       )}
     </div>

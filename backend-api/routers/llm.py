@@ -27,6 +27,7 @@ from services.langchain_service import (
 
 router = APIRouter(prefix="/api/v1/llm", tags=["LLM Services"])
 
+<<<<<<< HEAD
 from core.llm_config import llm_settings_available as _llm_status
 
 
@@ -42,6 +43,8 @@ async def api_llm_status():
     """
     return {"ok": True, **_llm_status()}
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
 # ── Shared LLM config model ────────────────────────────────────────────────────
 class LLMConfigPayload(BaseModel):
@@ -118,8 +121,11 @@ class FinalSummaryRequest(BaseModel):
     tool_results:        dict[str, Any] = {}
     tool_inferences:     dict[str, str] = {}
     web_search_snippets: Optional[list[dict]] = None
+<<<<<<< HEAD
     social_links:        Optional[dict] = None
     recent_posts:        Optional[list[dict]] = None
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     llm_config:          Optional[LLMConfigPayload] = None
 
 
@@ -128,8 +134,12 @@ async def api_final_summary(body: FinalSummaryRequest):
     """
     Compile all tool inferences into a comprehensive fraud report with verdict.
 
+<<<<<<< HEAD
     Input : job_dict, tool_inferences, optional web_search_snippets, social_links,
             recent_posts, optional llm_config
+=======
+    Input : job_dict, tool_inferences, optional web_search_snippets, optional llm_config
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     Output: {ok, verdict: "SAFE"|"SUSPICIOUS"|"LIKELY_FAKE", report: markdown_string}
     """
     cfg = LLMConfig(**body.llm_config.model_dump()) if body.llm_config else None
@@ -138,7 +148,10 @@ async def api_final_summary(body: FinalSummaryRequest):
         body.tool_results,
         body.tool_inferences,
         body.web_search_snippets,
+<<<<<<< HEAD
         body.social_links,
         body.recent_posts,
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         llm_config=cfg,
     )

@@ -15,6 +15,18 @@ dist-ssr/
 *.local
 .npm/
 
+
+=======
+
+# Node / JS
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+
+
+
 # Python
 __pycache__/
 *.py[cod]
@@ -39,6 +51,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+
 # Virtual environments tracking files
 pip-log.txt
 pip-delete-this-directory.txt
@@ -60,3 +73,5 @@ pip-delete-this-directory.txt
 .Trashes
 ehthumbs.db
 Thumbs.db
+data/
+*.csv

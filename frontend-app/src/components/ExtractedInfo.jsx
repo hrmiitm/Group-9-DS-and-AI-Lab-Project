@@ -5,6 +5,7 @@
  */
 import styles from './ExtractedInfo.module.css'
 
+<<<<<<< HEAD
 const PLATFORM_ICONS = {
   linkedin:  '💼',
   twitter_x: '🐦',
@@ -17,6 +18,8 @@ const PLATFORM_ICONS = {
   web:       '🔗',
 }
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 const FIELD_LABELS = {
   title:              'Job Title',
   company_name:       'Company',
@@ -42,7 +45,11 @@ function FieldRow({ label, value, source }) {
     <div className={styles.row}>
       <span className={styles.fieldLabel}>{label}</span>
       <div className={styles.fieldValue}>
+<<<<<<< HEAD
         <span className={styles.fieldValueText}>{display}</span>
+=======
+        <span>{display}</span>
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         {source && (
           <span className={`badge badge-info ${styles.sourceBadge}`}>{source}</span>
         )}
@@ -86,6 +93,7 @@ export default function ExtractedInfo({ jobDict, deepResearch }) {
           {deepResearch.data.summary && (
             <p className={styles.researchSummary}>{deepResearch.data.summary}</p>
           )}
+<<<<<<< HEAD
 
           {/* Social Media Links */}
           {deepResearch.data.social_links && Object.keys(deepResearch.data.social_links).length > 0 && (
@@ -135,6 +143,8 @@ export default function ExtractedInfo({ jobDict, deepResearch }) {
             </div>
           )}
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
           {deepResearch.data.sources?.length > 0 && (
             <div className={styles.sources}>
               {deepResearch.data.sources.slice(0, 3).map((src, i) => (

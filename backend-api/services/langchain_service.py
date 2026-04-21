@@ -97,7 +97,11 @@ You will be given:
   - A partial job posting (some fields may be null/missing)
   - DuckDuckGo search snippets gathered about the company
 
+<<<<<<< HEAD
 Your task: extract any missing contact/website fields AND social media profile links from the search results.
+=======
+Your task: extract any missing contact/website fields from the search results.
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 Return ONLY valid JSON — no markdown, no explanation.
 
 Return:
@@ -106,6 +110,7 @@ Return:
   "contact_email":    string | null,   // official HR / careers email if found
   "contact_phone":    string | null,   // official phone if found
   "summary":          string,          // 1-2 sentence summary of what you found
+<<<<<<< HEAD
   "sources":          [string],        // list of URLs you drew info from
   "social_links": {
     "linkedin":   string | null,       // LinkedIn company page URL
@@ -131,6 +136,11 @@ _SOCIAL_SEARCH_QUERIES = [
     ('news_posts', '"{}" latest news review employees 2024 2025'),
 ]
 
+=======
+  "sources":          [string]         // list of URLs you drew info from
+}"""
+
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
 async def deep_research(
     job_dict: dict,
@@ -138,9 +148,15 @@ async def deep_research(
     llm_config: Optional[LLMConfig] = None,
 ) -> dict:
     """
+<<<<<<< HEAD
     DuckDuckGo search + LLM to recover missing email/phone/website + social media links.
 
     Returns: {"ok": bool, "data": {candidates, applied_overrides, summary, sources, social_links, recent_posts}}
+=======
+    DuckDuckGo search + LLM to recover missing email/phone/website.
+
+    Returns: {"ok": bool, "data": {candidates, applied_overrides, summary, sources}}
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     """
     company = job_dict.get("company_name") or ""
     title   = job_dict.get("title") or ""
@@ -149,6 +165,7 @@ async def deep_research(
         if not job_dict.get(f)
     ]
 
+<<<<<<< HEAD
     # Run DuckDuckGo searches — always run (for social media too, even if no missing fields)
     snippets: list[dict] = []
     contact_queries = (
@@ -187,10 +204,34 @@ async def deep_research(
                         time.sleep(0.3)
                     except Exception:
                         pass
+=======
+    if not missing:
+        return {"ok": True, "data": {"missing_from_jd": [], "applied_overrides": {}, "summary": "All fields already present", "sources": []}}
+
+    # Run DuckDuckGo searches
+    snippets: list[dict] = []
+    queries = [
+        f'"{company}" official website careers',
+        f'"{company}" HR email contact',
+        f'"{company}" {title} job application',
+    ] if company else [f'"{title}" job company website email']
+
+    try:
+        with DDGS() as ddgs:
+            for q in queries:
+                try:
+                    results = ddgs.text(q, max_results=5)
+                    for r in (results or []):
+                        snippets.append({"query": q, "title": r.get("title"), "url": r.get("href"), "snippet": r.get("body")})
+                    time.sleep(0.3)
+                except Exception:
+                    pass
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     except Exception:
         pass
 
     snippets_text = "\n".join(
+<<<<<<< HEAD
         f"[{s.get('platform','web')}][{s['url']}] {s['title']}: {s['snippet']}"
         for s in snippets[:30]
         if s.get('url')
@@ -203,13 +244,23 @@ async def deep_research(
             "social_links": {}, "recent_posts": [],
         }}
 
+=======
+        f"[{s['url']}] {s['title']}: {s['snippet']}"
+        for s in snippets[:20]
+    )
+
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     llm = resolve_llm(llm_config)
     messages = [
         SystemMessage(content=_DEEP_RESEARCH_SYSTEM),
         HumanMessage(content=(
             f"Job posting fields:\n{json.dumps(job_dict, indent=2)[:2000]}\n\n"
             f"Missing fields: {missing}\n\n"
+<<<<<<< HEAD
             f"Search results:\n{snippets_text[:5000]}"
+=======
+            f"Search results:\n{snippets_text[:4000]}"
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         )),
     ]
 
@@ -227,6 +278,7 @@ async def deep_research(
             if enriched.get(field):
                 applied[field] = enriched[field]
 
+<<<<<<< HEAD
         # Clean social links — remove nulls and non-URL values
         raw_social = enriched.get("social_links") or {}
         social_links = {
@@ -241,6 +293,8 @@ async def deep_research(
             if isinstance(p, dict) and p.get("url") and p.get("title")
         ][:5]
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         return {
             "ok": True,
             "data": {
@@ -249,8 +303,11 @@ async def deep_research(
                 "applied_overrides": applied,
                 "summary":           enriched.get("summary", ""),
                 "sources":           enriched.get("sources", []),
+<<<<<<< HEAD
                 "social_links":      social_links,
                 "recent_posts":      recent_posts,
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
                 "candidates": {
                     "websites": [enriched.get("company_website")] if enriched.get("company_website") else [],
                     "emails":   [enriched.get("contact_email")]   if enriched.get("contact_email")   else [],
@@ -353,8 +410,11 @@ async def final_summary(
     tool_results: dict[str, dict],
     tool_inferences: dict[str, str],
     web_search_snippets: Optional[list[dict]] = None,
+<<<<<<< HEAD
     social_links: Optional[dict] = None,
     recent_posts: Optional[list[dict]] = None,
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     llm_config: Optional[LLMConfig] = None,
 ) -> dict:
     """
@@ -374,6 +434,7 @@ async def final_summary(
             for s in web_search_snippets[:10]
         )
 
+<<<<<<< HEAD
     social_text = ""
     if social_links:
         links_list = "\n".join(f"  - {k}: {v}" for k, v in social_links.items() if v)
@@ -389,23 +450,37 @@ async def final_summary(
         if posts_list:
             posts_text = f"\nRecent Posts / Mentions:\n{posts_list}"
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     llm = resolve_llm(llm_config)
     messages = [
         SystemMessage(content=_FINAL_SUMMARY_SYSTEM),
         HumanMessage(content=(
             f"Job Posting:\n{json.dumps(job_dict, indent=2)[:1500]}\n\n"
             f"Tool Inferences:\n{inferences_text[:4000]}\n"
+<<<<<<< HEAD
             f"{web_text}{social_text}{posts_text}"
+=======
+            f"{web_text}"
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         )),
     ]
 
     try:
         response = await llm.ainvoke(messages)
+<<<<<<< HEAD
         full_text = response.content.strip()
 
         # 1. Extract verdict from original full text (before stripping)
         verdict = "SUSPICIOUS"
         for line in full_text.split("\n"):
+=======
+        report = response.content.strip()
+
+        # Extract verdict from first line
+        verdict = "SUSPICIOUS"
+        for line in report.split("\n"):
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
             if line.upper().startswith("VERDICT:"):
                 raw_verdict = line.split(":", 1)[1].strip().upper()
                 if "FAKE" in raw_verdict or "FRAUDULENT" in raw_verdict:
@@ -416,6 +491,7 @@ async def final_summary(
                     verdict = "SUSPICIOUS"
                 break
 
+<<<<<<< HEAD
         # 2. Strip VERDICT line + optional blank line so report body is clean
         #    (frontend renders verdict separately in the banner)
         report_lines = full_text.split("\n")
@@ -425,6 +501,8 @@ async def final_summary(
                 report_lines = report_lines[1:]
         report = "\n".join(report_lines)
 
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         return {"ok": True, "verdict": verdict, "report": report}
     except Exception as e:
         return {"ok": False, "error": str(e), "verdict": "SUSPICIOUS", "report": ""}

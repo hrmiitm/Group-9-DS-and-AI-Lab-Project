@@ -79,6 +79,7 @@
 @media (max-width: 500px) {
   .grid2 { grid-template-columns: 1fr; }
 }
+<<<<<<< HEAD
 
 /* Small screens — full-height modal with scrollable body */
 @media (max-width: 480px) {
@@ -100,3 +101,5 @@
   }
   .footer button { flex: 1; justify-content: center; }
 }
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)

@@ -73,7 +73,11 @@ export async function llmToolInference(baseUrl, toolName, toolLabel, toolResult,
 }
 
 // ── LLM: Final Summary ─────────────────────────────────────────
+<<<<<<< HEAD
 export async function llmFinalSummary(baseUrl, jobDict, toolResults, toolInferences, llmConfig = null, socialLinks = null, recentPosts = null) {
+=======
+export async function llmFinalSummary(baseUrl, jobDict, toolResults, toolInferences, llmConfig = null) {
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
   return apiFetch(`${baseUrl}/api/v1/llm/final-summary`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -81,8 +85,11 @@ export async function llmFinalSummary(baseUrl, jobDict, toolResults, toolInferen
       job_dict:        jobDict,
       tool_results:    toolResults,
       tool_inferences: toolInferences,
+<<<<<<< HEAD
       social_links:    socialLinks,
       recent_posts:    recentPosts,
+=======
+>>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
       llm_config:      llmConfig,
     }),
   }, 120000)
