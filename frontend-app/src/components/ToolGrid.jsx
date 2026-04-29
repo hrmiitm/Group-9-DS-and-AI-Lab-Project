@@ -16,11 +16,7 @@ const CATEGORIES = [
   { id: 'ml_model',      label: 'ML Model' },
 ]
 
-<<<<<<< HEAD
 export default function ToolGrid({ tools, toolParams, jobDict, pipelineResults = {}, pipelineInferences = {} }) {
-=======
-export default function ToolGrid({ tools, toolParams, jobDict }) {
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
   const [filter, setFilter] = useState('all')
 
   if (!tools || Object.keys(tools).length === 0) return null
@@ -56,11 +52,8 @@ export default function ToolGrid({ tools, toolParams, jobDict }) {
             meta={meta}
             initialParams={toolParams[toolName] || {}}
             jobDict={jobDict}
-<<<<<<< HEAD
             pipelineResult={pipelineResults[toolName] || null}
             pipelineInference={pipelineInferences[toolName] || null}
-=======
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
           />
         ))}
       </div>

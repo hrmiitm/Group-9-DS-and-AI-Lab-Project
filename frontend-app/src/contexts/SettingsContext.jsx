@@ -8,7 +8,6 @@ import { createContext, useContext, useState, useCallback } from 'react'
 const STORAGE_KEY = 'fraudguard_settings'
 
 const DEFAULTS = {
-<<<<<<< HEAD
   backendUrl:            'https://hrmhrmhrm-company-backend-api.hf.space',  // change to HF Space URL after deployment
   apiKey:                '',
   extractModel:          'gpt-4.1-mini',
@@ -16,15 +15,6 @@ const DEFAULTS = {
   toolInferenceModel:    'gpt-4.1-mini',
   finalSummaryModel:     'gpt-4.1-mini',
   llmBaseUrl:            'https://aipipe.org/openai/v1',
-=======
-  backendUrl:            'http://localhost:8000',  // change to HF Space URL after deployment
-  apiKey:                '',
-  extractModel:          'openai/gpt-4o-mini',
-  deepResearchModel:     'openai/gpt-4o-mini',
-  toolInferenceModel:    'openai/gpt-4o-mini',
-  finalSummaryModel:     'openai/gpt-4o-mini',
-  llmBaseUrl:            'https://aipipe.org/openrouter/v1',
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 }
 
 function loadSettings() {

@@ -132,7 +132,6 @@ function AppInner() {
     }
     setToolParams(params)
 
-<<<<<<< HEAD
     // ── Step 3 & 4: Run tools one at a time + inference immediately after each ─
     // Sequential execution prevents hammering the backend and lets the UI
     // update live as each tool finishes (result + inference visible right away).
@@ -161,50 +160,10 @@ function AppInner() {
       // Immediately run inference for this tool while results are fresh
       if (results[name]?.ok) {
         setPipelineStep('inference')
-=======
-    // ── Step 3: Run all tools ──────────────────────────────────────────────
-    setPipelineStep('tools')
-    const toolNames = Object.keys(tools).filter(n => !tools[n].is_stub)
-    const total = toolNames.length
-    let done = 0
-    const results = {}
-
-    setToolProgress({ done: 0, total, currentTool: toolNames[0] || '' })
-
-    // Run tools concurrently in batches of 4
-    const BATCH = 4
-    for (let i = 0; i < toolNames.length; i += BATCH) {
-      const batch = toolNames.slice(i, i + BATCH)
-      await Promise.allSettled(
-        batch.map(async (name) => {
-          setToolProgress(p => ({ ...p, currentTool: name }))
-          try {
-            const res = await runTool(settings.backendUrl, name, params[name] || {})
-            results[name] = res
-          } catch (err) {
-            results[name] = { ok: false, tool: name, error: err.message }
-          }
-          done++
-          setToolResults({ ...results })
-          setToolProgress(p => ({ ...p, done }))
-        })
-      )
-    }
-
-    // ── Step 4: LLM Inference per tool ─────────────────────────────────────
-    setPipelineStep('inference')
-    const inferences = {}
-    const infCfg = getLLMConfig('toolInferenceModel')
-
-    await Promise.allSettled(
-      Object.entries(results).map(async ([name, result]) => {
-        if (!result?.ok) return
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         try {
           const inf = await llmToolInference(
             settings.backendUrl, name,
             tools[name]?.label || name,
-<<<<<<< HEAD
             results[name]?.result || results[name],
             extracted, infCfg
           )
@@ -218,32 +177,16 @@ function AppInner() {
 
       setToolProgress({ done: i + 1, total, currentTool: name })
     }
-=======
-            result?.result || result,
-            extracted, infCfg
-          )
-          if (inf?.ok) inferences[name] = inf.bullets?.join(' | ') || inf.inference || ''
-        } catch (_) {}
-        setToolInferences({ ...inferences })
-      })
-    )
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
     // ── Step 5: Final report ───────────────────────────────────────────────
     setPipelineStep('report')
     setReportLoading(true)
     try {
-<<<<<<< HEAD
       const sumCfg      = getLLMConfig('finalSummaryModel')
       const socialLinks = researchResult?.data?.social_links || null
       const recentPosts = researchResult?.data?.recent_posts || null
       const sumRes = await llmFinalSummary(
         settings.backendUrl, extracted, results, inferences, sumCfg, socialLinks, recentPosts
-=======
-      const sumCfg = getLLMConfig('finalSummaryModel')
-      const sumRes = await llmFinalSummary(
-        settings.backendUrl, extracted, results, inferences, sumCfg
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
       )
       setFinalVerdict(sumRes.verdict || 'SUSPICIOUS')
       setFinalReport(sumRes.report || '')
@@ -321,11 +264,8 @@ function AppInner() {
             verdict={finalVerdict}
             report={finalReport}
             isLoading={reportLoading}
-<<<<<<< HEAD
             socialLinks={deepResearch?.data?.social_links || null}
             recentPosts={deepResearch?.data?.recent_posts || null}
-=======
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
           />
         )}
 
@@ -349,11 +289,8 @@ function AppInner() {
               tools={tools}
               toolParams={toolParams}
               jobDict={jobDict}
-<<<<<<< HEAD
               pipelineResults={toolResults}
               pipelineInferences={toolInferences}
-=======
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
             />
           </div>
         )}

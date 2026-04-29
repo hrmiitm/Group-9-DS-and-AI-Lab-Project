@@ -4,7 +4,6 @@
   display: flex;
   align-items: center;
   gap: 6px;
-<<<<<<< HEAD
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;       /* Firefox */
@@ -12,10 +11,6 @@
   flex-wrap: nowrap;           /* prevent wrapping — let horizontal scroll take over */
 }
 .filterBar::-webkit-scrollbar { display: none; } /* Chrome / Safari */
-=======
-  flex-wrap: wrap;
-}
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
 .filterActive {
   background: var(--accent-glow) !important;
@@ -29,15 +24,12 @@
   padding: 0 6px;
   font-size: 10px;
   color: var(--text-muted);
-<<<<<<< HEAD
   flex-shrink: 0;
 }
 
 .filterActive .count {
   background: rgba(255,255,255,0.15);
   color: var(--accent-light);
-=======
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 }
 
 .grid {

@@ -34,11 +34,7 @@ function BulletList({ bullets }) {
   )
 }
 
-<<<<<<< HEAD
 export default function ToolCard({ toolName, meta, initialParams, jobDict, pipelineResult = null, pipelineInference = null }) {
-=======
-export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
   const { settings, getLLMConfig } = useSettings()
   const [params,    setParams]    = useState({ ...initialParams })
   const [status,    setStatus]    = useState('idle')  // idle|loading|done|error
@@ -47,7 +43,6 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
   const [infLoading,setInfLoading]= useState(false)
   const [showRaw,   setShowRaw]   = useState(false)
   const [error,     setError]     = useState(null)
-<<<<<<< HEAD
   const [copied,    setCopied]    = useState(false)
 
   // Show pipeline result if card hasn't been run manually
@@ -68,8 +63,6 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) })
       .catch(() => {})
   }
-=======
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
   const handleRun = async () => {
     setStatus('loading')
@@ -108,20 +101,12 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
     setInfLoading(false)
   }
 
-<<<<<<< HEAD
   const riskLevel = displayResult?.result?.data?.risk_level || displayResult?.data?.risk_level
-=======
-  const riskLevel = result?.result?.data?.risk_level
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
   const isStub    = meta.is_stub
   const canRun    = !isStub
 
   return (
-<<<<<<< HEAD
     <div className={`${styles.card} ${displayStatus === 'done' ? styles.cardDone : displayStatus === 'error' ? styles.cardError : ''} fade-in`}>
-=======
-    <div className={`${styles.card} ${status === 'done' ? styles.cardDone : status === 'error' ? styles.cardError : ''} fade-in`}>
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
       {/* ── Header ── */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
@@ -132,19 +117,11 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
           </div>
         </div>
         <div className={styles.headerRight}>
-<<<<<<< HEAD
           {displayStatus !== 'idle' && (
             <span className={`${styles.statusDot} ${STATUS_COLORS[displayStatus]}`}>
               {displayStatus === 'loading' ? <span className="spinner" /> :
                displayStatus === 'done'    ? '✓' :
                displayStatus === 'error'   ? '✗' : ''}
-=======
-          {status !== 'idle' && (
-            <span className={`${styles.statusDot} ${STATUS_COLORS[status]}`}>
-              {status === 'loading' ? <span className="spinner" /> :
-               status === 'done'    ? '✓' :
-               status === 'error'   ? '✗' : ''}
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
             </span>
           )}
           {riskLevel && <RiskBadge value={riskLevel} />}
@@ -203,16 +180,11 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
       )}
 
       {/* ── LLM Inference bullets ── */}
-<<<<<<< HEAD
       {(infLoading || displayInference) && (
-=======
-      {(infLoading || inference) && (
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
         <div className={styles.inferenceBox}>
           <div className={styles.inferenceHeader}>
             <span>🧠 Analysis</span>
             {infLoading && <span className="spinner" />}
-<<<<<<< HEAD
             {!infLoading && pipelineInference && !inference && (
               <span className={styles.pipelineTag}>auto</span>
             )}
@@ -224,20 +196,12 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
             <p className={styles.infFallback}>{displayInference.inference}</p>
           )}
           {displayInference?.ok === false && (
-=======
-          </div>
-          {inference?.bullets?.length > 0 && (
-            <BulletList bullets={inference.bullets} />
-          )}
-          {inference?.ok === false && (
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
             <p className={styles.infError}>LLM inference unavailable</p>
           )}
         </div>
       )}
 
       {/* ── Raw result ── */}
-<<<<<<< HEAD
       {displayResult && (
         <div className={styles.rawSection}>
           <div className={styles.rawActions}>
@@ -257,18 +221,6 @@ export default function ToolCard({ toolName, meta, initialParams, jobDict }) {
           </div>
           {showRaw && (
             <pre className="code-block">{JSON.stringify(displayResult, null, 2)}</pre>
-=======
-      {result && (
-        <div className={styles.rawSection}>
-          <button
-            className={`btn btn-ghost btn-sm ${styles.rawToggle}`}
-            onClick={() => setShowRaw(v => !v)}
-          >
-            {showRaw ? '▲ Hide' : '▼ Raw JSON'}
-          </button>
-          {showRaw && (
-            <pre className="code-block">{JSON.stringify(result, null, 2)}</pre>
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
           )}
         </div>
       )}

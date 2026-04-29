@@ -40,7 +40,6 @@
 }
 
 .nav { display: flex; align-items: center; gap: 8px; }
-<<<<<<< HEAD
 
 /* Very narrow screens — allow logo and nav to wrap */
 @media (max-width: 400px) {
@@ -54,5 +53,3 @@
   .logo { flex: 1 1 auto; }
   .nav  { flex: 0 0 auto; }
 }
-=======
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)

@@ -86,7 +86,6 @@
   white-space: nowrap;
 }
 
-<<<<<<< HEAD
 /* Word-wrap for long field values (emails, URLs, etc.) */
 .fieldValueText {
   word-break: break-word;
@@ -175,8 +174,6 @@
   word-break: break-word;
 }
 
-=======
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 @media (max-width: 600px) {
   .grid { grid-template-columns: 1fr; }
 }

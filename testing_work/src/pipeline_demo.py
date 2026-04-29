@@ -54,17 +54,10 @@ warnings.filterwarnings('ignore')
 # ─────────────────────────────────────────────────────────────────────────
 # CONFIGURATION — adjust DATA_PATH if running on Google Colab / Drive
 # ─────────────────────────────────────────────────────────────────────────
-<<<<<<< HEAD
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # testing_work/src/
 PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))  # → project root
 
 DATA_PATH = os.environ.get("DATA_PATH") or os.path.join(PROJECT_ROOT, "data", "raw", "fake_job_postings.csv")
-=======
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # src/
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
-
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "raw","fake_job_postings.csv")
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
 
 print(f"[PATH] DATA_PATH: {DATA_PATH}") # ← update if needed
 MODEL_NAME  = 'roberta-base'
@@ -95,13 +88,8 @@ import os
 # If DATA_PATH is not already absolute, resolve relative to project root
 
 if not os.path.isabs(DATA_PATH):
-<<<<<<< HEAD
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # testing_work/src/
     PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
-=======
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # src/
-    PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
->>>>>>> 6cc04f6 (Restructuring project files and adding backend-api)
     DATA_PATH = os.path.join(PROJECT_ROOT, DATA_PATH)
 
 print(f"[STAGE 2] Loading dataset from: {DATA_PATH}")
